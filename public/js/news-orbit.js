@@ -47,6 +47,7 @@
     const f = indexAt(rot);
     if (f !== front) {
       front = f;
+      preload(Number(cards[f].dataset.real));
       cards.forEach((c, i) => c.classList.toggle('is-front', i === f));
       const real = Number(cards[f].dataset.real);
       if (counter) counter.textContent = String(real + 1).padStart(2, '0');
@@ -73,7 +74,21 @@
     render();
     if (dragging || vel || rot !== target) kick();
   }
-  function kick() { if (visible && !raf) raf = requestAnimationFrame(frame); }
+  function kick() { if (visible && !paused && !raf) raf = requestAnimationFrame(frame); }
+  let paused = false; // the ring stands still while a story is open
+  const preloaded = new Set();
+  function preload(i) {
+    if (preloaded.has(i)) return;
+    const tpl = section.querySelector(`template[data-story="${i}"]`);
+    const im = tpl && tpl.content.querySelector('img');
+    if (!im) return;
+    preloaded.add(i);
+    const pre = new Image();
+    pre.decoding = 'async';
+    if (im.sizes) pre.sizes = im.sizes;
+    if (im.srcset) pre.srcset = im.srcset;
+    pre.src = im.getAttribute('src');
+  }
 
   // ---------- auto-turn ----------
   let hover = false;
@@ -139,6 +154,14 @@
     history.replaceState(null, '', '#news=' + slugs[story]);
     content.classList.remove('is-in', 'from-next', 'from-prev');
     content.replaceChildren(tpl);
+    // sharp photo fades in over the small preview once it has loaded
+    const photoEl = content.querySelector('.story-photo');
+    if (photoEl && !(photoEl.complete && photoEl.naturalWidth)) {
+      photoEl.classList.add('is-loading');
+      photoEl.addEventListener('load', () => photoEl.classList.remove('is-loading'), { once: true });
+    }
+    preload((story + 1) % stories.length);
+    preload((story - 1 + stories.length) % stories.length);
     content.scrollTop = 0;
     panel.scrollTop = 0;
     readProgress();
@@ -154,6 +177,7 @@
     clearTimeout(closing);
     opener = document.activeElement;
     fill(i);
+    paused = true;
     if (!modal.open) modal.showModal();
     document.documentElement.classList.add('story-lock');
     requestAnimationFrame(() => modal.classList.add('is-open'));
@@ -164,7 +188,7 @@
     modal.classList.remove('is-open');
     document.documentElement.classList.remove('story-lock');
     history.replaceState(null, '', location.pathname + location.search);
-    closing = setTimeout(() => { modal.close(); if (opener) opener.focus({ preventScroll: true }); }, reduced ? 0 : 420);
+    closing = setTimeout(() => { modal.close(); paused = false; kick(); if (opener) opener.focus({ preventScroll: true }); }, reduced ? 0 : 420);
   }
   // thin line at the top of the popup: how far you have read
   function readProgress() {
@@ -200,9 +224,11 @@
     e.preventDefault();
     if (moved) { moved = false; return; }
     if (i !== front) { goTo(i); kick(); return; }
+    preload(Number(c.dataset.real));
     openStory(Number(c.dataset.real));
   }));
   cards.forEach((c, i) => c.addEventListener('focus', () => { goTo(i); kick(); }));
+  cards.forEach((c) => c.addEventListener('pointerenter', () => preload(Number(c.dataset.real))));
 
   // trackpad sideways swipe (vertical wheel keeps scrolling the page)
   stage.addEventListener('wheel', (e) => {

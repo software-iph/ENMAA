@@ -54,7 +54,7 @@ function init(DATA) {
 
     // Matching developments, shown over the model.
     matchesEl.innerHTML = list.map((p, i) => `<button type="button" class="kw-match" data-open="${esc(p.slug)}" style="--i:${i}">
-      <img src="${esc(p.photos[0] || '')}" alt="" loading="lazy"><span><b>${esc(p.name)}</b><small>${esc([p.city, p.type].filter(Boolean).join(' · '))}</small><em>${esc(T.open)} ${RTL ? '←' : '→'}</em></span></button>`).join('');
+      <img src="${esc(p.photos[0]?.small || '')}" alt="" loading="lazy"><span><b>${esc(p.name)}</b><small>${esc([p.city, p.type].filter(Boolean).join(' · '))}</small><em>${esc(T.open)} ${RTL ? '←' : '→'}</em></span></button>`).join('');
     matchesEl.classList.toggle('has-items', list.length > 0);
 
     // Cards below follow the same rule (all chosen keywords).
@@ -93,8 +93,8 @@ function init(DATA) {
     const kw = DATA.keywords.filter((k) => p.keywords.includes(k.id));
     drawer.querySelector('.kw-drawer-body').innerHTML = `
       <div class="kw-gallery">
-        <div class="kw-gallery-main">${p.photos.map((src, i) => `<img src="${esc(src)}" alt=""${i ? '' : ' class="is-on"'}>`).join('')}</div>
-        ${p.photos.length > 1 ? `<div class="kw-gallery-thumbs">${p.photos.map((src, i) => `<button type="button" data-photo="${i}"${i ? '' : ' class="is-on"'} aria-label="${i + 1}"><img src="${esc(src)}" alt=""></button>`).join('')}</div>` : ''}
+        <div class="kw-gallery-main" style="background-image:url('${esc(p.photos[0]?.small || '')}')">${p.photos.map((ph, i) => (i ? `<img data-src="${esc(ph.big)}" alt="" decoding="async">` : `<img src="${esc(ph.big)}" alt="" class="is-on" decoding="async">`)).join('')}</div>
+        ${p.photos.length > 1 ? `<div class="kw-gallery-thumbs">${p.photos.map((ph, i) => `<button type="button" data-photo="${i}"${i ? '' : ' class="is-on"'} aria-label="${i + 1}"><img src="${esc(ph.small)}" alt="" decoding="async"></button>`).join('')}</div>` : ''}
       </div>
       <p class="kw-d-meta">${esc([p.city, p.type].filter(Boolean).join(' · '))}</p>
       <h2 class="kw-d-title" id="kw-drawer-title">${esc(p.name)}</h2>
@@ -119,7 +119,10 @@ function init(DATA) {
     const th = e.target.closest('[data-photo]');
     if (th) {
       const i = Number(th.dataset.photo);
-      drawer.querySelectorAll('.kw-gallery-main img').forEach((im, k) => im.classList.toggle('is-on', k === i));
+      drawer.querySelectorAll('.kw-gallery-main img').forEach((im, k) => {
+        if (k === i && im.dataset.src) { im.src = im.dataset.src; im.removeAttribute('data-src'); }
+        im.classList.toggle('is-on', k === i);
+      });
       drawer.querySelectorAll('[data-photo]').forEach((b, k) => b.classList.toggle('is-on', k === i));
     }
   });
@@ -555,7 +558,7 @@ function init(DATA) {
           el.className = 'kw-pin';
           el.dataset.open = p.slug;
           el.style.setProperty('--i', i);
-          el.innerHTML = `<span class="kw-pin-dot"></span><span class="kw-pin-label"><img src="${esc(p.photos[0] || '')}" alt=""><b>${esc(p.name)}</b></span>`;
+          el.innerHTML = `<span class="kw-pin-dot"></span><span class="kw-pin-label"><img src="${esc(p.photos[0]?.small || '')}" alt=""><b>${esc(p.name)}</b></span>`;
           el.tabIndex = -1; // the list under the model is the keyboard route
           pinsEl.append(el);
           return { el, anchor };

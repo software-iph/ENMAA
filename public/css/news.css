@@ -143,3 +143,15 @@ html.reduce-motion .story-panel, html.reduce-motion .story-scrim, html.reduce-mo
   html[lang="ar"] .story-open, html[lang="ar"] .story-copy { font-size: 13.5px; }
   .story-nav span { font-size: 12px; }
 }
+
+
+/* ---------- smoother popups: preview photo, one blur layer only ---------- */
+.story-media { background-size: cover; background-position: center; }
+.story-photo { transition: opacity .5s ease; }
+.story-photo.is-loading { opacity: 0; }
+.story-panel { will-change: transform, opacity; }
+.story-cat { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(42, 22, 44, .35); }
+.story-bar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--white); }
+@media (max-width: 767px) {
+  .story-scrim { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(42, 22, 44, .5); }
+}

@@ -198,7 +198,7 @@ function newsOrbit(ctx, news) {
     </div>
     <p class="sr-only" aria-live="polite" data-orbit-live></p>
     ${news.map((n, i) => `<template data-story="${i}">
-      <div class="story-media">${n.image ? img(n.image, n.title, 'story-photo', false, '(max-width: 767px) 100vw, 920px') : ''}<div class="story-media-shade"></div>
+      <div class="story-media"${n.image && srcsetFor(n.image) ? ` style="background-image:url('/r/480${esc(n.image)}')"` : ''}>${n.image ? img(n.image, n.title, 'story-photo', false, '(max-width: 767px) 100vw, 920px') : ''}<div class="story-media-shade"></div>
         <p class="story-meta">${n.category ? `<span class="story-cat">${esc(n.category)}</span>` : ''}<time datetime="${esc(n.date)}">${formatDate(n.date, lang)}</time></p></div>
       <div class="story-body">
         <h2 class="story-title" id="story-title">${esc(n.title)}</h2>
@@ -262,7 +262,7 @@ function developments(ctx, { projects, keywords = [] }) {
   const { t, settings, lang } = ctx;
   const kwNames = Object.fromEntries(keywords.map((k) => [k.id, k.title]));
   const countFor = (id) => projects.filter((p) => p.categories.includes(id)).length;
-  const photo = (src) => (srcsetFor(src) ? `/r/800${src}` : src);
+  const photo = (src) => (srcsetFor(src) ? { big: `/r/1200${src}`, small: `/r/480${src}` } : { big: src, small: src });
   const firstPara = (txt) => String(txt || '').split(/\n\s*\n/)[0].slice(0, 420);
   // Everything the keyword explorer needs, including the detail panel content.
   const data = {

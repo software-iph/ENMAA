@@ -194,3 +194,10 @@ html[lang="ar"] .kw-d-meta, html[lang="ar"] .kw-d-title { letter-spacing: 0; }
   .kw-d-actions { flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 20px calc(14px + env(safe-area-inset-bottom)); margin-left: 0; margin-right: 0; }
   .kw-d-actions .text-link { justify-content: center; }
 }
+
+.kw-gallery-main { background-size: cover; background-position: center; }
+.kw-drawer-panel { will-change: transform; }
+.kw-d-actions { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--white); }
+@media (max-width: 767px) {
+  .kw-drawer-backdrop { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(42, 22, 44, .5); }
+}
