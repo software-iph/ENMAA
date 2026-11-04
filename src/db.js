@@ -162,7 +162,7 @@ const DEFAULT_SETTINGS = {
   legal_accessibility_ar: 'تسعى إنماء إلى تحقيق معايير WCAG 2.1 AA في هذا الموقع. إذا واجهت أي صعوبة في الاستخدام، يُرجى إبلاغنا عبر صفحة التواصل.',
   // Page images (edited under "Page images" in the dashboard)
   img_band: '/img/sunset-city.jpg',
-  img_hero_developments: '/img/aerial-green.jpg',
+  img_hero_developments: '/img/commercial.jpg',
   img_hero_careers: '/img/dining.jpg',
   img_hero_vendors: '/img/tower.jpg',
   img_hero_investors: '/img/community.jpg',
@@ -441,6 +441,8 @@ async function init() {
   await migrateProjects();
   await mockPhotosV2();
   await mockNewsV1();
+  // Developments banner: the old default photo becomes the skyline (a photo chosen in the dashboard is kept)
+  await run("UPDATE settings SET value = '/img/commercial.jpg' WHERE key = 'img_hero_developments' AND value = '/img/aerial-green.jpg'");
   await loadTexts();
   return ensureAdmin();
 }
