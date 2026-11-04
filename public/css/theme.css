@@ -159,3 +159,15 @@ html[lang="ar"] .band-title { letter-spacing: 0; line-height: 1.5; }
   .vac-table td:last-child .text-link { display: flex; justify-content: center; align-items: center; height: 46px; border: 1px solid var(--purple); border-radius: 2px; }
   .vac-table tbody tr:hover td:last-child .text-link, html[dir="rtl"] .vac-table tbody tr:hover td:last-child .text-link { transform: none; }
 }
+
+/* Home hero fills the whole screen on every device, including behind the phone browser's
+   floating toolbar (lvh = full screen height). The buttons at the bottom are lifted by the
+   toolbar's height (lvh - svh), so they always stay visible above it. */
+.hero--home { min-height: 100vh; min-height: 100lvh; }
+.hero--home .hero-base-inner { padding-bottom: calc(36px + (100lvh - 100svh)); }
+.hero--home .hero-content.hero-center { padding-bottom: calc(140px + (100lvh - 100svh) / 2); }
+@media (max-width: 767px) {
+  .hero--home .hero-base-inner { padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + (100lvh - 100svh)); }
+  .hero-arrow { bottom: calc(max(16px, env(safe-area-inset-bottom)) + (100lvh - 100svh)); }
+  .hero--home .hero-content.hero-center { padding-bottom: calc(190px + (100lvh - 100svh) / 2); }
+}
