@@ -58,7 +58,7 @@
   // ---------- animation loop (runs only while something moves and the ring is on screen) ----------
   // A spring pulls the ring to the chosen card. It starts at the finger's speed, so letting go
   // flows straight into the settle (no coasting, then crawling back). Time-based: same feel at 60 or 120 Hz.
-  const STIFF = 36, DAMP = 12;
+  const STIFF = 30, DAMP = 11;
   let raf = 0;
   let visible = false;
   let lastFrame = 0;
@@ -108,12 +108,10 @@
 
   // ---------- drag ----------
   let lastX = 0, startX = 0, moved = false;
-  let samples = []; // recent [time, angle] while dragging, to know the flick speed
   stage.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     dragging = true; moved = false;
     startX = lastX = e.clientX; vel = 0;
-    samples = [[performance.now(), rot]];
     stage.classList.add('is-dragging');
     kick();
   });
@@ -123,25 +121,15 @@
     if (Math.abs(e.clientX - startX) > 6) moved = true;
     const k = 180 / (R * Math.PI) * 1.15; // a card follows the finger
     rot -= dx * k;
-    const now = performance.now();
-    samples.push([now, rot]);
-    while (samples.length > 2 && now - samples[0][0] > 100) samples.shift();
     lastX = e.clientX;
     target = rot;
     kick();
   });
-  // Let go: pick the card the swipe was heading to (a quick flick can pass one or two cards).
-  function release(speed) {
-    vel = Math.max(-600, Math.min(600, speed));
-    const here = indexAt(rot);
-    const aim = indexAt(rot + vel * 0.24);
-    let d = ((aim - here) % n + n) % n;
-    if (d > n / 2) d -= n;
-    d = Math.max(-2, Math.min(2, d));
-
-    goTo(here + d);
-    // never shoot past the chosen card because of the finger's speed
-    if (Math.sign(vel) !== Math.sign(target - rot)) vel *= 0.3;
+  // Let go: the ring glides slowly to the picture closest to the middle (the swipe speed
+  // does not throw it further), easing in and out.
+  function release() {
+    vel = 0;
+    goTo(indexAt(rot));
     lastFrame = 0;
     kick();
   }
@@ -149,10 +137,7 @@
     if (!dragging) return;
     dragging = false;
     stage.classList.remove('is-dragging');
-    const now = performance.now();
-    const first = samples[0];
-    const speed = first && now - first[0] < 160 && now > first[0] ? ((rot - first[1]) / (now - first[0])) * 1000 : 0;
-    release(speed);
+    release();
   };
   window.addEventListener('pointerup', end);
   window.addEventListener('pointercancel', end);
@@ -275,7 +260,7 @@
     target = rot;
     kick();
     clearTimeout(wheelEnd);
-    wheelEnd = setTimeout(() => release(0), 90);
+    wheelEnd = setTimeout(() => release(), 90);
   }, { passive: false });
 
   // keyboard
