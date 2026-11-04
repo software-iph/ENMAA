@@ -20,6 +20,7 @@ const UPLOADS = path.join(__dirname, 'uploads');
 
 const app = express();
 app.disable('x-powered-by');
+app.use(require('compression')()); // gzip for HTML, CSS, JS and JSON (images are already compressed)
 app.set('trust proxy', 1);
 
 app.use((req, res, next) => {
@@ -31,7 +32,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(require('./src/images').handler); // /r/<width>/... responsive images
+const images = require('./src/images');
+app.use(images.handler); // /r/<width>/... responsive images
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));
 // Three.js for the keyword model on Our Developments (served from node_modules, no CDN).
 app.use('/vendor/three/addons', express.static(path.join(__dirname, 'node_modules', 'three', 'examples', 'jsm'), { maxAge: '30d' }));
@@ -281,6 +283,7 @@ init().then((adminFile) => {
     console.log(`ENMAA website running at ${BASE_URL}`);
     console.log(`Dashboard: ${BASE_URL}/admin`);
     if (adminFile) console.log(`First dashboard login saved to ${adminFile}`);
+    images.warmAll(); // make every photo size ahead of time, so visitors never wait for one
   });
 }).catch((err) => {
   console.error('Could not connect to PostgreSQL. Check DATABASE_URL in .env.');

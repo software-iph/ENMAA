@@ -370,6 +370,8 @@ api.post('/upload', upload.array('file', 30), async (req, res) => {
     await run('INSERT INTO media (url, name, size) VALUES ($1, $2, $3) ON CONFLICT (url) DO NOTHING', [url, f.originalname.slice(0, 200), f.size]);
     urls.push(url);
   }
+  // prepare the phone / tablet / desktop sizes of new photos right away
+  require('./images').warmUploads(req.files.filter((f) => !f.destination.endsWith('files')).map((f) => f.filename));
   res.json({ url: urls[0], urls });
 });
 

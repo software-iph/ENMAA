@@ -109,6 +109,11 @@ Back up the PostgreSQL database (`pg_dump enmaa`) and the `uploads/` folder.
 - Use a dedicated PostgreSQL user with a strong password instead of `postgres`.
 - Run behind HTTPS (e.g. Nginx or a hosting platform) and set `BASE_URL`.
 
+## 3D model file
+
+The keyword model is served as one small pre-built file, `public/js/dev3d.min.js` (Three.js trimmed to what the
+model uses). After changing `public/js/dev3d.js`, rebuild it with `npm run build` and commit both files.
+
 ## Run on a server with Docker
 
 `docker-compose.yml` runs the website and its own PostgreSQL 18 database. The site listens on port **3006**

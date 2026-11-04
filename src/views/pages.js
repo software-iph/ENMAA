@@ -319,8 +319,7 @@ function developments(ctx, { projects, keywords = [] }) {
     </div>
   </div>
   <script type="application/json" id="kw-data">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>
-  <script type="importmap">{"imports":{"three":"/vendor/three/three.module.js","three/addons/":"/vendor/three/addons/"}}</script>
-  <script type="module" src="/js/dev3d.js?v=${ASSET_V}"></script>`;
+  <script type="module" src="/js/dev3d.min.js?v=${ASSET_V}"></script>`;
   return layout({ ...ctx, active: 'developments' }, body);
 }
 
