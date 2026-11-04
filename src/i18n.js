@@ -1,7 +1,12 @@
 // UI strings. HR and Tendering texts are used word for word (handoff pp. 26–27).
-const LANGS = ['en', 'ar'];
-const DIR = { en: 'ltr', ar: 'rtl' };
-const LANG_NAMES = { en: 'EN', ar: 'عربي' };
+// Website languages. To add one: put its texts in src/lang/<code>.js and list it here.
+const LANGS = ['en', 'ar', 'it', 'tr', 'zh'];
+const DIR = { en: 'ltr', ar: 'rtl', it: 'ltr', tr: 'ltr', zh: 'ltr' };
+const LANG_NAMES = { en: 'EN', ar: 'عربي', it: 'IT', tr: 'TR', zh: '中文' }; // short, for the menu bar
+const LANG_FULL = { en: 'English', ar: 'العربية', it: 'Italiano', tr: 'Türkçe', zh: '中文' }; // in the language itself
+const LOCALE = { en: 'en-GB', ar: 'ar-LY', it: 'it-IT', tr: 'tr-TR', zh: 'zh-CN' }; // dates
+// Texts of the extra languages live in their own files (missing texts fall back to English).
+const loadLang = (l) => { try { return require(`./lang/${l}`); } catch { return {}; } };
 
 const en = {
   site_name: 'ENMAA',
@@ -239,16 +244,14 @@ const ar = {
   meta_description: 'إنماء مطوّر رئيسي يصنع مستقبل ليبيا من خلال أحياء ووجهات ومشاريع مبنية للتقدّم.',
 };
 
-const DICT = { en, ar };
+const DICT = { en, ar, ...Object.fromEntries(LANGS.filter((l) => l !== 'en' && l !== 'ar').map((l) => [l, loadLang(l)])) };
 
 // Texts edited in the dashboard ("Site texts"), loaded from the database.
-let OVERRIDES = { en: {}, ar: {} };
+const emptyOverrides = () => Object.fromEntries(LANGS.map((l) => [l, {}]));
+let OVERRIDES = emptyOverrides();
 function setOverrides(rows) {
-  const o = { en: {}, ar: {} };
-  for (const r of rows) {
-    if (r.en) o.en[r.key] = r.en;
-    if (r.ar) o.ar[r.key] = r.ar;
-  }
+  const o = emptyOverrides();
+  for (const r of rows) for (const l of LANGS) if (r[l]) o[l][r.key] = r[l];
   OVERRIDES = o;
 }
 
@@ -275,8 +278,8 @@ function textCatalog() {
     const gi = GROUPS.findIndex(([, re]) => re.test(key));
     groups[gi].items.push({
       key,
-      default: { en: en[key], ar: ar[key] ?? '' },
-      value: { en: OVERRIDES.en[key] ?? '', ar: OVERRIDES.ar[key] ?? '' },
+      default: Object.fromEntries(LANGS.map((l) => [l, DICT[l][key] ?? ''])),
+      value: Object.fromEntries(LANGS.map((l) => [l, OVERRIDES[l][key] ?? ''])),
     });
   }
   return groups.filter((g) => g.items.length);
@@ -318,4 +321,4 @@ function pick(t, lang, field) {
   return t?.en?.[field] ?? '';
 }
 
-module.exports = { LANGS, DIR, LANG_NAMES, translator, pick, pluralForm, setOverrides, textCatalog };
+module.exports = { LANGS, DIR, LANG_NAMES, LANG_FULL, LOCALE, DICT, translator, pick, pluralForm, setOverrides, textCatalog };

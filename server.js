@@ -46,8 +46,8 @@ app.use('/admin', adminRouter);
 
 // ---------------- helpers ----------------
 function cookieLang(req) {
-  const m = /(?:^|;\s*)lang=(en|ar)/.exec(req.headers.cookie || '');
-  return m ? m[1] : null;
+  const m = /(?:^|;\s*)lang=([a-z]{2})\b/.exec(req.headers.cookie || '');
+  return m && LANGS.includes(m[1]) ? m[1] : null;
 }
 
 function localizeProject(p, lang) {
@@ -90,7 +90,8 @@ const q = {
 
 // ---------------- public pages ----------------
 app.get('/', (req, res) => {
-  const lang = cookieLang(req) || (/^ar\b/i.test(req.headers['accept-language'] || '') ? 'ar' : 'en');
+  const browser = (req.headers['accept-language'] || '').split(',').map((x) => x.trim().slice(0, 2).toLowerCase()).find((l) => LANGS.includes(l));
+  const lang = cookieLang(req) || browser || 'en';
   res.redirect(302, `/${lang}/`);
 });
 

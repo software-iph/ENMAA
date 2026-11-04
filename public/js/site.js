@@ -502,3 +502,11 @@
     }
   }
 })();
+
+// Language menu: close when clicking elsewhere or pressing Escape.
+(() => {
+  const menu = document.querySelector('details.lang-switch');
+  if (!menu) return;
+  document.addEventListener('click', (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu.open) { menu.open = false; menu.querySelector('summary').focus(); } });
+})();

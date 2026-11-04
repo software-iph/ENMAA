@@ -7,7 +7,20 @@
 
   const TYPES = { contact: 'Contact', career: 'Job application', investor: 'Investor interest', project: 'Project enquiry' };
   const STATUSES = { new: 'New', in_progress: 'In progress', replied: 'Replied', archived: 'Archived' };
-  const LANGS = [['en', 'English'], ['ar', 'Arabic']];
+  const LANGS = [['en', 'English'], ['ar', 'Arabic'], ['it', 'Italian'], ['tr', 'Turkish'], ['zh', 'Chinese']];
+  const LANG_LABEL = Object.fromEntries(LANGS);
+  const rtl = (l) => (l === 'ar' ? ' dir="rtl" class="ar"' : '');
+  // Language tabs: one tab per language, all fields stay in the form (only one language is shown at a time).
+  const langTabs = (panels, note = 'Empty fields show the English text on the website.') => `<div class="lang-tabs">
+    <div class="lang-tabbar" role="tablist">${LANGS.map(([l, name], i) => `<button type="button" role="tab" data-lt="${l}" class="${i ? '' : 'on'}" aria-selected="${!i}">${name}</button>`).join('')}<span class="muted lang-note">${note}</span></div>
+    ${LANGS.map(([l], i) => `<div class="lang-panel" data-lp="${l}"${i ? ' hidden' : ''}>${panels(l)}</div>`).join('')}</div>`;
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-lt]');
+    if (!b) return;
+    const box = b.closest('.lang-tabs');
+    box.querySelectorAll(':scope > .lang-tabbar [data-lt]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });
+    box.querySelectorAll(':scope > .lang-panel').forEach((p) => { p.hidden = p.dataset.lp !== b.dataset.lt; });
+  });
   let me = null;
   let unread = 0;
 
@@ -214,7 +227,7 @@
 
   // ---------- visitors (statistics) ----------
   const DEVICE_NAMES = { desktop: 'Desktop', mobile: 'Mobile', tablet: 'Tablet' };
-  const LANG_NAMES = { en: 'English', ar: 'Arabic' };
+  const LANG_NAMES = LANG_LABEL;
   const shortDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   const longDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   const plusDays = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
@@ -276,7 +289,7 @@
         <label class="f"><span>To</span><input type="date" data-f="to" value="${to}" max="${today()}"></label>
         <label class="f"><span>Page</span>${sel('page', pageOpts, filt.page)}</label>
         <label class="f"><span>Device</span>${sel('device', [['', 'All devices'], ['desktop', 'Desktop'], ['mobile', 'Mobile'], ['tablet', 'Tablet']], filt.device)}</label>
-        <label class="f"><span>Language</span>${sel('lang', [['', 'Both'], ['en', 'English'], ['ar', 'Arabic']], filt.lang)}</label>
+        <label class="f"><span>Language</span>${sel('lang', [['', 'All'], ...LANGS], filt.lang)}</label>
         <label class="f"><span>Came from</span>${sel('source', srcOpts, filt.source)}</label>
         <div class="vfilters-end">${filt.page || filt.device || filt.lang || filt.source ? '<button type="button" class="btn ghost sm" id="vclear">Clear filters</button>' : ''}
           <a class="btn ghost sm" href="/admin/api/visitors.csv?${query}">${icon('download')} CSV</a></div>
@@ -454,7 +467,7 @@
       ['Phone', m.phone], ['Organisation', m.organisation], ['Country', m.country],
       [m.type === 'career' ? 'Position' : m.type === 'project' ? 'Development' : 'Subject', m.subject],
       ['Sector', d.sector], ['Investment range', d.investment_range], ['Preferred language', d.preferred_language],
-      ['Website language', m.lang === 'ar' ? 'Arabic' : 'English'],
+      ['Website language', LANG_LABEL[m.lang] || m.lang],
     ].filter((r) => r[1]);
     const replySubject = encodeURIComponent(`Re: ${m.subject || 'Your message to ENMAA'}`);
     main.innerHTML = `<div class="top"><h1>${esc(m.name || 'Message')}</h1><div class="actions">
@@ -493,13 +506,13 @@
   const val = (o, path) => path.split('.').reduce((a, k) => (a == null ? a : a[k]), o) ?? '';
   function tfield(obj, lang, key, label, type = 'text') {
     const v = esc(val(obj, `t.${lang}.${key}`));
-    const dir = lang === 'ar' ? ' dir="rtl" class="ar"' : '';
+    const dir = rtl(lang);
     return `<label class="f"><span>${label}</span>${type === 'textarea'
       ? `<textarea data-t="${lang}.${key}" rows="6"${dir}>${v}</textarea>`
       : `<input type="text" data-t="${lang}.${key}" value="${v}"${dir}>`}</label>`;
   }
   function langCols(obj, fields) {
-    return `<div class="lang-cols">${LANGS.map(([l, name]) => `<div><h3>${name}</h3>${fields.map(([k, label, type]) => tfield(obj, l, k, label, type)).join('')}</div>`).join('')}</div>`;
+    return langTabs((l) => fields.map(([k, label, type]) => tfield(obj, l, k, label, type)).join(''));
   }
   function readT(root) {
     const t = {};
@@ -684,7 +697,7 @@
     let current = q.get('g') || groups[0].name;
     const human = (k) => k.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
     main.innerHTML = `<div class="top"><h1>Site texts</h1><div class="actions"><button class="btn" type="button" id="saveTexts">Save changes</button></div></div>
-      <p class="muted">Every heading, button, label and message on the website, in English and Arabic. Leave a field empty to use the original wording (shown in grey). Development, news and vacancy texts are edited on their own pages.</p>
+      <p class="muted">Every heading, button, label and message on the website, in all five languages. Leave a field empty to use the original wording (shown in grey). Development, news and vacancy texts are edited on their own pages.</p>
       <div class="tabsbar">${groups.map((g) => `<button type="button" data-g="${esc(g.name)}" class="${g.name === current ? 'on' : ''}">${esc(g.name)} <span class="muted">${g.items.length}</span></button>`).join('')}</div>
       <div class="filters"><input type="search" id="tq" placeholder="Search texts…" aria-label="Search texts"></div>
       <div id="tlist"></div>`;
@@ -692,16 +705,17 @@
     const draw = () => {
       const term = $('#tq').value.trim().toLowerCase();
       const items = term
-        ? groups.flatMap((g) => g.items).filter((i) => [i.key, i.default.en, i.default.ar, i.value.en, i.value.ar].join(' ').toLowerCase().includes(term))
+        ? groups.flatMap((g) => g.items).filter((i) => [i.key, ...Object.values(i.default), ...Object.values(i.value)].join(' ').toLowerCase().includes(term))
         : groups.find((g) => g.name === current).items;
       $('#tlist').innerHTML = items.length ? items.map((i) => {
         const v = dirty[i.key] || i.value;
         const long = (i.default.en || '').length > 70;
         const ctl = (lang) => long
-          ? `<textarea data-k="${esc(i.key)}" data-l="${lang}" rows="3" placeholder="${esc(i.default[lang])}"${lang === 'ar' ? ' dir="rtl" class="ar"' : ''}>${esc(v[lang])}</textarea>`
-          : `<input type="text" data-k="${esc(i.key)}" data-l="${lang}" value="${esc(v[lang])}" placeholder="${esc(i.default[lang])}"${lang === 'ar' ? ' dir="rtl" class="ar"' : ''}>`;
-        return `<div class="text-row${i.value.en || i.value.ar ? ' edited' : ''}"><div class="text-key">${esc(human(i.key))}${i.value.en || i.value.ar ? ' <span class="pill on">edited</span>' : ''}</div>
-          <div class="lang-cols"><label class="f"><span>English</span>${ctl('en')}</label><label class="f"><span>Arabic</span>${ctl('ar')}</label></div></div>`;
+          ? `<textarea data-k="${esc(i.key)}" data-l="${lang}" rows="3" placeholder="${esc(i.default[lang] || i.default.en)}"${rtl(lang)}>${esc(v[lang])}</textarea>`
+          : `<input type="text" data-k="${esc(i.key)}" data-l="${lang}" value="${esc(v[lang] || '')}" placeholder="${esc(i.default[lang] || i.default.en)}"${rtl(lang)}>`;
+        const edited = Object.values(i.value).some(Boolean);
+        return `<div class="text-row${edited ? ' edited' : ''}"><div class="text-key">${esc(human(i.key))}${edited ? ' <span class="pill on">edited</span>' : ''}</div>
+          <div class="lang-grid">${LANGS.map(([l, name]) => `<label class="f"><span>${name}</span>${ctl(l)}</label>`).join('')}</div></div>`;
       }).join('') : '<div class="empty">No texts match.</div>';
       $$('[data-k]', main).forEach((el) => el.addEventListener('input', () => {
         const k = el.dataset.k;
@@ -970,17 +984,14 @@
     main.innerHTML = `<div class="top"><h1>Settings</h1></div>
       <form id="ed">
       <div class="card"><h2>Contact details (footer and contact page)</h2><div class="grid g2">
-        ${f('contact_email', 'Email', 'email')}${f('contact_phone', 'Phone')}${f('contact_address_en', 'Address (English)')}${f('contact_address_ar', 'Address (Arabic)', 'text', true)}</div></div>
+        ${f('contact_email', 'Email', 'email')}${f('contact_phone', 'Phone')}${LANGS.map(([l, name]) => f('contact_address_' + l, `Address (${name})`, 'text', l === 'ar')).join('')}</div></div>
       <div class="card"><h2>Social links</h2><div class="grid g2">${f('social_linkedin', 'LinkedIn URL', 'url')}${f('social_instagram', 'Instagram URL', 'url')}${f('social_x', 'X URL', 'url')}${f('social_facebook', 'Facebook URL', 'url')}</div></div>
       <div class="card"><h2>Forms & links</h2>
         ${f('vendor_form_url', 'Vendor Pre-Qualification form URL (Tendering)', 'url')}
         ${f('hr_reference_url', 'HR reference form URL', 'url')}
         ${f('investment_ranges', 'Investment ranges for the Register Interest form (one per line)', 'textarea')}</div>
       <div class="card"><h2>Legal pages</h2><p class="muted">Paste the texts from Legal. A blank line starts a new paragraph.</p>
-        <div class="lang-cols">
-          <div>${f('legal_privacy_en', 'Privacy Policy — English', 'textarea')}${f('legal_terms_en', 'Terms of Use — English', 'textarea')}${f('legal_accessibility_en', 'Accessibility — English', 'textarea')}</div>
-          <div>${f('legal_privacy_ar', 'Privacy Policy — Arabic', 'textarea', true)}${f('legal_terms_ar', 'Terms of Use — Arabic', 'textarea', true)}${f('legal_accessibility_ar', 'Accessibility — Arabic', 'textarea', true)}</div>
-        </div></div>
+        ${langTabs((l) => [['privacy', 'Privacy Policy'], ['terms', 'Terms of Use'], ['accessibility', 'Accessibility']].map(([k, n]) => f(`legal_${k}_${l}`, `${n} — ${LANG_LABEL[l]}`, 'textarea', l === 'ar')).join(''))}</div>
       <div class="savebar"><button class="btn" type="submit">Save settings</button><span class="err" role="alert"></span></div>
       </form>`;
     $('#ed').addEventListener('submit', async (e) => {

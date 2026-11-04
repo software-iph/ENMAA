@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
 const { all, one, run, getSettings, saveSettings, ITEM_KINDS, SCENES, getItems, loadTexts, hashPassword, verifyPassword } = require('./db');
-const { textCatalog } = require('./i18n');
+const { textCatalog, LANGS } = require('./i18n');
 const { today } = require('./analytics');
 
 const UPLOADS = path.join(__dirname, '..', 'uploads');
@@ -294,11 +294,10 @@ api.put('/texts', async (req, res) => {
   const known = new Set(textCatalog().flatMap((g) => g.items.map((i) => i.key)));
   for (const [key, v] of Object.entries(changes)) {
     if (!known.has(key)) continue;
-    const en = String(v?.en ?? '').trim();
-    const ar = String(v?.ar ?? '').trim();
-    if (!en && !ar) await run('DELETE FROM texts WHERE key = $1', [key]);
-    else await run(`INSERT INTO texts (key, en, ar, updated_at) VALUES ($1, $2, $3, now())
-      ON CONFLICT (key) DO UPDATE SET en = EXCLUDED.en, ar = EXCLUDED.ar, updated_at = now()`, [key, en || null, ar || null]);
+    const vals = LANGS.map((l) => String(v?.[l] ?? '').trim() || null);
+    if (vals.every((x) => !x)) await run('DELETE FROM texts WHERE key = $1', [key]);
+    else await run(`INSERT INTO texts (key, ${LANGS.join(', ')}, updated_at) VALUES ($1, ${LANGS.map((_, i) => '$' + (i + 2)).join(', ')}, now())
+      ON CONFLICT (key) DO UPDATE SET ${LANGS.map((l) => `${l} = EXCLUDED.${l}`).join(', ')}, updated_at = now()`, [key, ...vals]);
   }
   await loadTexts();
   res.json({ ok: true });
@@ -388,7 +387,7 @@ function visitorFilters(qs) {
   const where = ['day BETWEEN $1 AND $2'];
   const add = (sql, v) => { vals.push(v); where.push(sql.replace('?', '$' + vals.length)); };
   if (['desktop', 'mobile', 'tablet'].includes(qs.device)) add('device = ?', qs.device);
-  if (['en', 'ar'].includes(qs.lang)) add('lang = ?', qs.lang);
+  if (LANGS.includes(qs.lang)) add('lang = ?', qs.lang);
   if (qs.page) add('path = ?', String(qs.page).slice(0, 300));
   // "came from" keeps every page view of the people who arrived from that source that day
   if (qs.source) add(`${VISIT} IN (SELECT day::text || ':' || visitor FROM page_views WHERE day BETWEEN $1 AND $2 AND source = ?)`, String(qs.source).slice(0, 200));

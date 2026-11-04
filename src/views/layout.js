@@ -1,4 +1,4 @@
-const { LANGS, DIR, LANG_NAMES } = require('../i18n');
+const { LANGS, DIR, LANG_NAMES, LANG_FULL, LOCALE } = require('../i18n');
 
 // Changes on every server start so browsers fetch fresh CSS/JS after an update.
 const V = Date.now().toString(36);
@@ -22,7 +22,7 @@ function formatDate(iso, lang) {
   if (!iso) return '';
   const d = new Date(iso + 'T00:00:00');
   if (isNaN(d)) return esc(iso);
-  return d.toLocaleDateString(lang === 'ar' ? 'ar-LY' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString(LOCALE[lang] || 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function nav(ctx) {
@@ -36,8 +36,9 @@ function nav(ctx) {
   ];
   const links = items.map(([key, href, label]) =>
     `<li><a href="/${lang}/${href}" class="nav-link${active === key ? ' is-active' : ''}"${active === key ? ' aria-current="page"' : ''}>${esc(label)}</a></li>`).join('');
-  const langLinks = LANGS.map((l) =>
-    `<a href="/${l}${path}" hreflang="${l}" lang="${l}" class="lang-opt${l === lang ? ' is-current' : ''}"${l === lang ? ' aria-current="true"' : ''}>${LANG_NAMES[l]}</a>`).join('');
+  const langLink = (l, label) =>
+    `<a href="/${l}${path}" hreflang="${l}" lang="${l}" class="lang-opt${l === lang ? ' is-current' : ''}"${l === lang ? ' aria-current="true"' : ''}>${label}</a>`;
+  const langLinks = LANGS.map((l) => langLink(l, LANG_NAMES[l])).join('');
   const logo = lang === 'ar' ? '/logos/ar-white.png' : '/logos/en-white.png';
   return `<header class="site-nav${ctx.solidNav ? ' is-solid' : ''}" id="top">
   <a class="skip" href="#main">${esc(t('skip'))}</a>
@@ -47,7 +48,10 @@ function nav(ctx) {
       <ul class="nav-list">${links}</ul>
     </nav>
     <a class="nav-cta" href="/${lang}/contact">${esc(t('footer_contact'))}</a>
-    <div class="lang-switch" aria-label="${esc(t('language'))}">${langLinks}</div>
+    <details class="lang-switch">
+      <summary aria-label="${esc(t('language'))}"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg><span>${LANG_NAMES[lang]}</span></summary>
+      <div class="lang-menu">${LANGS.map((l) => langLink(l, LANG_FULL[l])).join('')}</div>
+    </details>
     <button class="menu-btn" aria-expanded="false" aria-controls="mobile-menu"><span class="sr-only">${esc(t('menu'))}</span><span class="menu-lines" aria-hidden="true"></span></button>
   </div>
   <div class="mobile-menu" id="mobile-menu" hidden>
@@ -82,7 +86,7 @@ function footer(ctx) {
       <li><a href="/${lang}/vendors">${esc(t('nav_vendors'))}</a></li>
       <li><a href="${esc(settings.vendor_form_url)}" target="_blank" rel="noopener">${esc(t('footer_vendor_reg'))} ↗</a></li></ul></div>
     <div><h3 class="f-title">${esc(t('language'))}</h3><ul>
-      ${LANGS.map((l) => `<li><a href="/${l}${ctx.path}" lang="${l}" hreflang="${l}">${l === 'ar' ? 'العربية' : 'English'}</a></li>`).join('')}</ul></div>
+      ${LANGS.map((l) => `<li><a href="/${l}${ctx.path}" lang="${l}" hreflang="${l}">${LANG_FULL[l]}</a></li>`).join('')}</ul></div>
   </div>
   <div class="wrap footer-base">
     <span>© ${year} ENMAA. ${esc(t('rights'))}</span>

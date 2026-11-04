@@ -106,6 +106,9 @@ CREATE TABLE IF NOT EXISTS texts (
   ar TEXT,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE texts ADD COLUMN IF NOT EXISTS it TEXT;
+ALTER TABLE texts ADD COLUMN IF NOT EXISTS tr TEXT;
+ALTER TABLE texts ADD COLUMN IF NOT EXISTS zh TEXT;
 -- Media library: every uploaded image or PDF.
 CREATE TABLE IF NOT EXISTS media (
   id SERIAL PRIMARY KEY,
@@ -159,6 +162,11 @@ const DEFAULT_SETTINGS = {
   legal_terms_en: 'The Terms of Use will be published here once they are provided by ENMAA Legal.',
   legal_terms_ar: 'ستُنشر شروط الاستخدام هنا فور اعتمادها من الإدارة القانونية في إنماء.',
   legal_accessibility_en: 'ENMAA aims to meet WCAG 2.1 AA across this website. If you find something that is hard to use, please tell us through the contact page.',
+  // Italian / Turkish / Chinese: empty = the English text is shown
+  contact_address_it: 'Tripoli, Libia', contact_address_tr: 'Trablus, Libya', contact_address_zh: '利比亚的黎波里',
+  legal_privacy_it: '', legal_terms_it: '', legal_accessibility_it: '',
+  legal_privacy_tr: '', legal_terms_tr: '', legal_accessibility_tr: '',
+  legal_privacy_zh: '', legal_terms_zh: '', legal_accessibility_zh: '',
   legal_accessibility_ar: 'تسعى إنماء إلى تحقيق معايير WCAG 2.1 AA في هذا الموقع. إذا واجهت أي صعوبة في الاستخدام، يُرجى إبلاغنا عبر صفحة التواصل.',
   // Page images (edited under "Page images" in the dashboard)
   img_band: '/img/sunset-city.jpg',
@@ -188,13 +196,11 @@ const ITEM_KINDS = {
 async function seedItems() {
   const { n } = await one('SELECT COUNT(*)::int AS n FROM items');
   if (n > 0) return;
-  const { translator } = require('./i18n');
-  const en = translator('en');
-  const ar = translator('ar');
-  const tt = (titleKey, textKey) => JSON.stringify({
-    en: { title: titleKey ? en(titleKey) : '', text: textKey ? en(textKey) : '' },
-    ar: { title: titleKey ? ar(titleKey) : '', text: textKey ? ar(textKey) : '' },
-  });
+  const { translator, LANGS } = require('./i18n');
+  const tt = (titleKey, textKey) => JSON.stringify(Object.fromEntries(LANGS.map((l) => {
+    const tr = translator(l);
+    return [l, { title: titleKey ? tr(titleKey) : '', text: textKey ? tr(textKey) : '' }];
+  })));
   const add = (kind, sort, image, t, link = '') =>
     run('INSERT INTO items (kind, sort, image, link, t) VALUES ($1, $2, $3, $4, $5)', [kind, sort, image, link, t]);
 
@@ -223,7 +229,7 @@ async function getItems(kind, { all: includeHidden = false } = {}) {
 
 // ---------- edited texts ----------
 async function loadTexts() {
-  const rows = await all('SELECT key, en, ar FROM texts');
+  const rows = await all('SELECT * FROM texts');
   require('./i18n').setOverrides(rows);
 }
 
@@ -426,6 +432,30 @@ async function mockNewsV1() {
   await run("INSERT INTO settings (key, value) VALUES ('migration_mock_news_v1', '1') ON CONFLICT (key) DO NOTHING");
 }
 
+// Lists (hero slides, values, sectors, ...) were seeded in English and Arabic only. Fill in the
+// Italian / Turkish / Chinese wording for every entry still showing an original text. Runs once;
+// entries already given a text in that language are left alone.
+async function listLanguagesV1() {
+  if (await one("SELECT 1 FROM settings WHERE key = 'migration_list_langs_v1'")) return;
+  const { DICT, LANGS } = require('./i18n');
+  const extra = LANGS.filter((l) => l !== 'en' && l !== 'ar' && Object.keys(DICT[l]).length);
+  const keyOf = new Map(Object.entries(DICT.en).map(([k, v]) => [v, k]));
+  for (const it of await all('SELECT id, t FROM items')) {
+    const t = it.t || {};
+    let changed = false;
+    for (const l of extra) {
+      for (const field of ['title', 'text']) {
+        const key = keyOf.get(t.en?.[field]);
+        if (!key || !DICT[l][key] || (t[l]?.[field] || '').trim()) continue;
+        t[l] = { ...(t[l] || {}), [field]: DICT[l][key] };
+        changed = true;
+      }
+    }
+    if (changed) await run('UPDATE items SET t = $2 WHERE id = $1', [it.id, JSON.stringify(t)]);
+  }
+  await run("INSERT INTO settings (key, value) VALUES ('migration_list_langs_v1', '1') ON CONFLICT (key) DO NOTHING");
+}
+
 async function init() {
   await pool.query(SCHEMA);
   const { n } = await one('SELECT COUNT(*)::int AS n FROM projects');
@@ -441,6 +471,7 @@ async function init() {
   await migrateProjects();
   await mockPhotosV2();
   await mockNewsV1();
+  await listLanguagesV1();
   // Developments banner: the old default photo becomes the skyline (a photo chosen in the dashboard is kept)
   await run("UPDATE settings SET value = '/img/commercial.jpg' WHERE key = 'img_hero_developments' AND value = '/img/aerial-green.jpg'");
   await loadTexts();

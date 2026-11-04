@@ -256,3 +256,11 @@ td.nowrap { white-space: nowrap; }
   .vfilters label.f { flex: 1 1 140px; }
   .vfilters-end { margin-inline-start: 0; }
 }
+
+/* language tabs in editors (5 languages) */
+.lang-tabs { margin-top: 4px; }
+.lang-tabbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; border-bottom: 1px solid var(--line, #e6e0e6); margin-bottom: 16px; }
+.lang-tabbar button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 8px 14px; font: inherit; font-size: 13px; cursor: pointer; color: inherit; opacity: .65; }
+.lang-tabbar button.on { opacity: 1; border-bottom-color: var(--purple); color: var(--purple); font-weight: 600; }
+.lang-note { margin-inline-start: auto; font-size: 12px; }
+.lang-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 16px; }
