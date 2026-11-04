@@ -187,7 +187,8 @@
     paused = true;
     await settle(content.querySelector('.story-photo'));
     if (!modal.open) modal.showModal();
-    document.documentElement.classList.add('story-lock');
+    // lock page scrolling on larger screens only; on phones it makes Safari's toolbars resize mid-opening
+    if (window.innerWidth >= 768) document.documentElement.classList.add('story-lock');
     void panel.offsetWidth; // render the closed state once
     await twoFrames();
     modal.classList.add('is-open');

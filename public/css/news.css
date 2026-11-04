@@ -167,3 +167,10 @@ html.reduce-motion .story-panel, html.reduce-motion .story-scrim, html.reduce-mo
   .orbit-meta time { white-space: nowrap; }
 }
 html.reduce-motion .story-panel { transform: none !important; }
+
+/* phones: pin the sheet to the bottom edge itself, so it never appears at the top first */
+@media (max-width: 767px) {
+  .story-modal[open] { display: block; }
+  .story-panel { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: 100%; margin: 0; max-height: 92vh; max-height: 92dvh; }
+  .story-scrim { touch-action: none; } /* the page behind does not scroll while a story is open */
+}

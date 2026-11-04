@@ -110,7 +110,7 @@ function init(DATA) {
     clearTimeout(hideTimer);
     ready.then(() => {
       drawer.hidden = false;
-      document.body.classList.add('kw-locked');
+      if (window.innerWidth >= 768) document.body.classList.add('kw-locked'); // phones: no lock (Safari toolbars would jump)
       void drawer.offsetWidth;
       let shown = false;
       const show = () => { if (!shown) { shown = true; drawer.classList.add('is-open'); } };

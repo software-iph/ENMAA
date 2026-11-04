@@ -201,3 +201,7 @@ html[lang="ar"] .kw-d-meta, html[lang="ar"] .kw-d-title { letter-spacing: 0; }
 @media (max-width: 767px) {
   .kw-drawer-backdrop { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(42, 22, 44, .5); }
 }
+@media (max-width: 767px) {
+  .kw-drawer-panel { position: fixed; max-height: 92vh; max-height: 92dvh; }
+  .kw-drawer-backdrop { touch-action: none; }
+}
