@@ -86,6 +86,7 @@ function init(DATA) {
 
   // ---------- detail panel ("see what it contains") ----------
   let lastFocus = null;
+  let hideTimer = 0;
   function openDrawer(slug, from) {
     const p = DATA.projects.find((x) => x.slug === slug);
     if (!p) return;
@@ -103,15 +104,25 @@ function init(DATA) {
       ${p.overview ? `<p class="kw-d-text">${esc(p.overview)}</p>` : ''}
       ${p.facts.length ? `<dl class="facts">${p.facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
       <div class="kw-d-actions"><a class="btn btn-primary" href="${esc(p.url)}">${esc(T.full)}</a><a class="text-link" href="${esc(p.url)}#enquire">${esc(T.interest)} ${RTL ? '←' : '→'}</a></div>`;
-    drawer.hidden = false;
-    requestAnimationFrame(() => drawer.classList.add('is-open'));
-    document.body.classList.add('kw-locked');
-    drawer.querySelector('.kw-drawer-panel').focus();
+    // get the first photo ready (at most a moment), then slide in from a rendered starting point
+    const first = drawer.querySelector('.kw-gallery-main img.is-on');
+    const ready = first && first.decode ? Promise.race([first.decode().catch(() => {}), new Promise((r) => setTimeout(r, 250))]) : Promise.resolve();
+    clearTimeout(hideTimer);
+    ready.then(() => {
+      drawer.hidden = false;
+      document.body.classList.add('kw-locked');
+      void drawer.offsetWidth;
+      let shown = false;
+      const show = () => { if (!shown) { shown = true; drawer.classList.add('is-open'); } };
+      requestAnimationFrame(() => requestAnimationFrame(show));
+      setTimeout(show, 60);
+      drawer.querySelector('.kw-drawer-panel').focus({ preventScroll: true });
+    });
   }
   function closeDrawer() {
     drawer.classList.remove('is-open');
     document.body.classList.remove('kw-locked');
-    setTimeout(() => { drawer.hidden = true; }, reduced ? 0 : 450);
+    hideTimer = setTimeout(() => { drawer.hidden = true; }, reduced ? 0 : 450);
     lastFocus?.focus?.();
   }
   drawer.addEventListener('click', (e) => {

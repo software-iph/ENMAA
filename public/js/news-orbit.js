@@ -88,6 +88,7 @@
     if (im.sizes) pre.sizes = im.sizes;
     if (im.srcset) pre.srcset = im.srcset;
     pre.src = im.getAttribute('src');
+    if (pre.decode) pre.decode().catch(() => {}); // unpack it now, not when the popup opens
   }
 
   // ---------- auto-turn ----------
@@ -172,16 +173,26 @@
     void content.offsetWidth;
     content.classList.add('is-in');
   }
-  function openStory(i) {
-    if (!modal) return;
+  // Get the photo ready first (at most a moment), then show the popup and play its animation
+  // from a rendered starting point. Without this the very first opening jumps instead of sliding.
+  const settle = (img, ms = 250) => (img && img.decode ? Promise.race([img.decode().catch(() => {}), new Promise((r) => setTimeout(r, ms))]) : Promise.resolve());
+  const twoFrames = () => new Promise((r) => { requestAnimationFrame(() => requestAnimationFrame(r)); setTimeout(r, 60); });
+  let opening = false;
+  async function openStory(i) {
+    if (!modal || opening) return;
+    opening = true;
     clearTimeout(closing);
     opener = document.activeElement;
     fill(i);
     paused = true;
+    await settle(content.querySelector('.story-photo'));
     if (!modal.open) modal.showModal();
     document.documentElement.classList.add('story-lock');
-    requestAnimationFrame(() => modal.classList.add('is-open'));
+    void panel.offsetWidth; // render the closed state once
+    await twoFrames();
+    modal.classList.add('is-open');
     modal.querySelector('.story-close').focus({ preventScroll: true });
+    opening = false;
   }
   function closeStory() {
     if (!modal || !modal.open) return;
