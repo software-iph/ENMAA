@@ -152,9 +152,10 @@ function init(DATA) {
     if (startY === null) return;
     pull = Math.max(0, e.touches[0].clientY - startY);
     if (!pull) return;
+    if (e.cancelable) e.preventDefault(); // the whole sheet moves; stop Safari stretching its inside
     sheet.classList.add('is-dragging');
     sheet.style.transform = `translateY(${pull}px)`;
-  }, { passive: true });
+  }, { passive: false });
   sheet.addEventListener('touchend', () => {
     if (startY === null) return;
     startY = null;

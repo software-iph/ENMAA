@@ -205,3 +205,5 @@ html[lang="ar"] .kw-d-meta, html[lang="ar"] .kw-d-title { letter-spacing: 0; }
   .kw-drawer-panel { position: fixed; max-height: 92vh; max-height: 92dvh; }
   .kw-drawer-backdrop { touch-action: none; }
 }
+/* no rubber-band bounce inside the sheet (it showed an empty white band above the photo) */
+.kw-drawer-panel { overscroll-behavior: none; }
