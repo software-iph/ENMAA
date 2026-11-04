@@ -155,3 +155,15 @@ html.reduce-motion .story-panel, html.reduce-motion .story-scrim, html.reduce-mo
 @media (max-width: 767px) {
   .story-scrim { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(42, 22, 44, .5); }
 }
+
+/* phones: the story opens as a solid sheet sliding up (no see-through fade over the page) */
+@media (max-width: 767px) {
+  .story-panel { opacity: 1; transform: translateY(105%); transition: transform .48s cubic-bezier(.2, .8, .2, 1); }
+  .story-modal.is-open .story-panel { transform: none; }
+  .story-scrim { transition: opacity .25s ease; }
+  .story-content:not(.from-next):not(.from-prev) { opacity: 1; transition: none; }
+  /* card label: category and date on one tidy line */
+  .orbit-meta { flex-wrap: wrap; gap: 2px 6px; font-size: 10px; letter-spacing: .1em; line-height: 1.4; }
+  .orbit-meta time { white-space: nowrap; }
+}
+html.reduce-motion .story-panel { transform: none !important; }
