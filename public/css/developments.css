@@ -164,3 +164,33 @@ html[lang="ar"] .kw-d-meta, html[lang="ar"] .kw-d-title { letter-spacing: 0; }
   .kw-pin-dot { animation: none; }
   .kw-drawer-panel, .kw-btn { transition-duration: .01s; }
 }
+
+/* =====================================================================
+   Project sheet — blurred page behind, like the news story popup
+   ===================================================================== */
+.kw-drawer-backdrop { background: rgba(42, 22, 44, .42); -webkit-backdrop-filter: blur(16px) saturate(1.15); backdrop-filter: blur(16px) saturate(1.15); cursor: zoom-out; }
+.kw-drawer-panel { padding-bottom: 0; box-shadow: 0 30px 100px rgba(20, 8, 22, .4); overscroll-behavior: contain; scrollbar-width: thin; }
+.kw-drawer-close { border-radius: 50%; font-size: 24px; box-shadow: 0 6px 20px rgba(0, 0, 0, .15); transition: transform .3s, background .3s, color .3s; }
+.kw-drawer-close:hover { transform: rotate(90deg); }
+.kw-gallery-main::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(42, 22, 44, 0) 55%, rgba(42, 22, 44, .45) 100%); pointer-events: none; }
+.kw-drawer.is-open .kw-gallery-main img.is-on { animation: kw-sheet-photo 1.2s cubic-bezier(.2, .8, .2, 1); }
+@keyframes kw-sheet-photo { from { transform: scale(1.06); } }
+.kw-gallery-thumbs button { border-radius: 8px; overflow: hidden; }
+.kw-d-actions { position: sticky; bottom: 0; z-index: 2; margin: 28px 0 0; padding: 16px 28px; background: rgba(255, 255, 255, .94); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-top: 1px solid rgba(42, 22, 44, .08); }
+
+@media (min-width: 768px) {
+  .kw-drawer-panel { border-radius: 22px 0 0 22px; }
+  html[dir="rtl"] .kw-drawer-panel { border-radius: 0 22px 22px 0; }
+}
+
+/* phones: a rounded sheet that rises from the bottom, with a grab handle */
+@media (max-width: 767px) {
+  .kw-drawer-panel { height: auto; max-height: 92svh; border-radius: 22px 22px 0 0; transition: transform .55s cubic-bezier(.2, .8, .2, 1); }
+  .kw-drawer-panel.is-dragging { transition: none; }
+  .kw-sheet-handle { position: absolute; top: 8px; left: 50%; z-index: 3; width: 42px; height: 5px; margin-left: -21px; border-radius: 3px; background: rgba(255, 255, 255, .85); box-shadow: 0 1px 4px rgba(0, 0, 0, .25); }
+  .kw-gallery-main { border-radius: 22px 22px 0 0; overflow: hidden; }
+  .kw-drawer-close { top: 16px; width: 40px; height: 40px; font-size: 22px; }
+  .kw-d-meta { margin-top: 20px; }
+  .kw-d-actions { flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 20px calc(14px + env(safe-area-inset-bottom)); margin-left: 0; margin-right: 0; }
+  .kw-d-actions .text-link { justify-content: center; }
+}

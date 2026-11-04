@@ -315,6 +315,7 @@ function developments(ctx, { projects, keywords = [] }) {
     <div class="kw-drawer-backdrop" data-kw-close></div>
     <div class="kw-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="kw-drawer-title" tabindex="-1">
       <button type="button" class="kw-drawer-close" data-kw-close aria-label="${esc(t('close'))}">×</button>
+      <span class="kw-sheet-handle" aria-hidden="true"></span>
       <div class="kw-drawer-body"></div>
     </div>
   </div>

@@ -125,6 +125,30 @@ function init(DATA) {
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) closeDrawer(); });
 
+  // phones: pull the sheet down from the top to close it
+  const sheet = drawer.querySelector('.kw-drawer-panel');
+  let startY = null;
+  let pull = 0;
+  sheet.addEventListener('touchstart', (e) => {
+    if (window.innerWidth >= 768 || sheet.scrollTop > 0) return;
+    startY = e.touches[0].clientY;
+    pull = 0;
+  }, { passive: true });
+  sheet.addEventListener('touchmove', (e) => {
+    if (startY === null) return;
+    pull = Math.max(0, e.touches[0].clientY - startY);
+    if (!pull) return;
+    sheet.classList.add('is-dragging');
+    sheet.style.transform = `translateY(${pull}px)`;
+  }, { passive: true });
+  sheet.addEventListener('touchend', () => {
+    if (startY === null) return;
+    startY = null;
+    sheet.classList.remove('is-dragging');
+    sheet.style.transform = '';
+    if (pull > 110) closeDrawer();
+  });
+
   // ---------- 3D model ----------
   try {
     model = buildModel();
