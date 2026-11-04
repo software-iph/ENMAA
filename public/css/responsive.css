@@ -1,0 +1,204 @@
+/* =====================================================================
+   ENMAA — image display & phone refinements (loaded last)
+   ===================================================================== */
+
+/* ---------- images ---------- */
+/* Placeholder tone behind every photo, then a soft fade once the image has loaded. */
+.img-zoom, .p-thumb, .panel-media, .values-media, .article-img, .story-img, .feature-media, .exp-media { background-color: #d9d4da; }
+.js img.fade { opacity: 0; transition: opacity .9s var(--ease-out, ease-out), transform 1.8s var(--ease-out, ease-out), filter 1s var(--ease-out, ease-out); transition-delay: 0s, var(--d, 0s), 0s; }
+.hero-current { display: none; }
+.js img.fade.is-loaded { opacity: 1; }
+img { image-rendering: auto; }
+/* Photos are cropped from the centre, slightly favouring the upper part where buildings and skylines sit. */
+.img-zoom img, .p-thumb img, .panel-media img, .values-img, .hero-img, .band-media img, .pimg img { object-position: 50% 40%; }
+.article-img img { max-height: 70vh; }
+.article-img { overflow: hidden; }
+
+/* ---------- touch devices: no hover-only effects ---------- */
+@media (hover: none) {
+  .img-zoom:hover img, a:hover .img-zoom img, .p-card-link:hover .p-thumb img { transform: none; }
+  .path-card:hover::before { transform: translateY(101%); }
+  .path-card:hover { background: var(--plum); }
+  .path-card:hover .h3 { color: var(--white); }
+  .path-card:hover p { color: rgba(255, 255, 255, .8); }
+  .path-card:hover .text-link { color: var(--white); }
+}
+
+/* ---------- notch / home-indicator safe areas ---------- */
+.nav-inner { padding-left: max(var(--side), env(safe-area-inset-left)); padding-right: max(var(--side), env(safe-area-inset-right)); }
+.footer-base { padding-bottom: max(26px, env(safe-area-inset-bottom)); }
+
+/* Sticky project tabs follow the navigation when it hides on scroll. */
+.tabs { transition: top .6s var(--ease-out, ease-out); }
+.site-nav.is-hidden ~ main .tabs { top: 0; }
+
+/* ---------- tablet ---------- */
+@media (max-width: 1100px) {
+  .hero-content { padding-top: 130px; }
+  .feature { gap: 40px; }
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 767px) {
+  body { font-size: 15.5px; }
+  .wrap { padding-left: max(var(--side), env(safe-area-inset-left)); padding-right: max(var(--side), env(safe-area-inset-right)); }
+
+  /* Typography that fits a phone */
+  .h1 { font-size: clamp(28px, 8.4vw, 36px); letter-spacing: .12em; }
+  .h1--xl { font-size: clamp(34px, 10.4vw, 42px); letter-spacing: .14em; }
+  html[lang="ar"] .h1, html[lang="ar"] .h1--xl { font-size: clamp(30px, 9vw, 40px); letter-spacing: 0; }
+  .h2 { font-size: clamp(21px, 6.2vw, 27px); letter-spacing: .12em; }
+  .h3 { font-size: 18px; letter-spacing: .14em; }
+  .lead, .hero-text { font-size: 15.5px; }
+  .statement { font-size: 19px; }
+  .story-statement { font-size: clamp(21px, 6.2vw, 27px); letter-spacing: .05em; }
+  .band-title { font-size: clamp(25px, 7.4vw, 31px); }
+  .sec-head { margin-bottom: 32px; }
+
+  /* Comfortable tap targets (44px) */
+  .text-link { padding-block: 11px; }
+  .nav-logo { display: block; padding: 9px 0; }
+  .menu-btn { width: 48px; height: 48px; margin-inline-end: -8px; }
+  .site-footer li a { display: inline-block; padding: 6px 0; }
+  .legal-links a { padding: 8px 0; }
+
+  /* Buttons wrap instead of running off the screen */
+  .btn { white-space: normal; height: auto; min-height: 52px; padding: 14px 24px; line-height: 1.45; text-align: center; }
+  .hero-actions .btn, .form-foot .btn { width: 100%; }
+
+  /* Form fields at 16px so iPhones do not zoom in */
+  .form input, .form select, .form textarea, .vac-filters input, .vac-filters select { font-size: 16px; }
+  .check { font-size: 14px !important; }
+
+  /* Heroes */
+  .hero { min-height: 100svh; }
+  .hero--small { min-height: 70svh; }
+  .hero-content { padding-top: 120px; padding-bottom: 64px; }
+  .hero-text { margin-bottom: 28px; }
+
+  /* Home hero: slim progress bars with the current slide's name */
+  .hero--home .hero-content { padding-bottom: 150px; }
+  .hero-base-inner { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px 16px; padding-top: 14px; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+  .hero-current { display: block; grid-row: 1; grid-column: 1; font-size: 11px; text-transform: uppercase; letter-spacing: .22em; color: var(--white); }
+  html[lang="ar"] .hero-current { letter-spacing: 0; font-size: 14px; }
+  .hero-pause { grid-row: 1; grid-column: 2; margin: 0; width: 40px; height: 40px; }
+  .hero-base ul.hero-tabs { grid-row: 2; grid-column: 1 / -1; grid-template-columns: repeat(var(--tabs, 4), 1fr); gap: 8px; }
+  .hero-tab { padding: 20px 0; margin: -12px 0; display: block; }
+  .hero-tab-num, .hero-tab-label { display: none; }
+  .hero-tab-bar { margin: 0; height: 2px; }
+
+  /* What we do: collapsed panels show the full title */
+  .panel { height: 84px; }
+  .panel.is-active { height: min(440px, 115vw); }
+  .panel-vtitle { top: 50%; transform: translateY(-50%); inset-inline-start: 70px; inset-inline-end: 20px; white-space: normal; line-height: 1.3; font-size: 14px; }
+  html[lang="ar"] .panel-vtitle { top: 50%; transform: translateY(-50%); font-size: 17px; }
+  .panel-num { top: 50%; transform: translateY(-50%); }
+  .panel.is-active .panel-num { top: 24px; transform: none; }
+  .panel-body .h3 { font-size: 20px; }
+  .panel-body p { font-size: 15px; }
+
+  /* Values: smaller photo above the list */
+  .values-media { aspect-ratio: 4 / 3; }
+  .values li { grid-template-columns: 40px 1fr; padding: 18px 0; }
+
+  /* Developments grid & cards */
+  .p-grid { gap: 48px; }
+  .p-main { aspect-ratio: 4 / 3; }
+  .facts div, .facts--rows div { grid-template-columns: 110px 1fr; font-size: 14px; }
+  .listing-bar { flex-wrap: wrap; gap: 12px; margin-bottom: 32px; }
+
+  /* Project page */
+  .tabs ul { gap: 24px; padding-inline-end: 24px; scrollbar-width: none; }
+  .tabs ul::-webkit-scrollbar { display: none; }
+  .tabs a { padding: 16px 0; }
+  .fact-strip dd { font-size: 15px; }
+  .gallery { gap: 8px; }
+  .g-item:first-child { grid-column: 1 / -1; grid-row: auto; aspect-ratio: 4 / 3; }
+  .lightbox figure { max-width: 100vw; }
+  .lightbox img { max-height: 70vh; }
+  .lb-prev, .lb-next { top: auto; bottom: 24px; }
+
+  /* News & articles */
+  .news-grid { gap: 40px; }
+  .article { padding-bottom: 72px; }
+  .article-img { margin: 32px auto; padding: 0; }
+
+  .contact-list a { display: inline-block; padding: 10px 0; }
+
+  /* Careers */
+  .vac-table tr { padding: 18px 0; }
+  .vac-filters { gap: 10px; }
+
+  /* Investors / Vendors */
+  .sectors { gap: 40px; }
+  .disc { padding: 28px 22px; }
+  .steps li { gap: 16px; }
+
+  /* Footer */
+  .footer-grid { gap: 32px 20px; padding-top: 56px; padding-bottom: 40px; }
+  .footer-brand img { width: 240px; }
+  .footer-base { flex-direction: column; gap: 10px; }
+  .legal-links { gap: 20px; flex-wrap: wrap; }
+
+  /* Marquee & sections */
+  .chapter { padding: 72px 0; }
+  .story { padding: 88px 0 80px; }
+  .band-content { padding-top: 88px; padding-bottom: 88px; }
+}
+
+/* Very small phones */
+@media (max-width: 360px) {
+  :root { --side: 18px; }
+  .h1--xl { font-size: 31px; letter-spacing: .1em; }
+  .footer-grid { grid-template-columns: 1fr; }
+}
+
+/* =====================================================================
+   PHOTO FRAMES — landscape photos get landscape frames, so less is cut off
+   ===================================================================== */
+.feature-media { aspect-ratio: 3 / 2; }
+.values-media { aspect-ratio: 4 / 3; }
+.photo-strip .img-zoom { aspect-ratio: 3 / 2; }
+.exp-media { aspect-ratio: 4 / 3; align-self: center; }
+
+/* Development category tiles: landscape tiles in a 3-per-row layout; leftover tiles share the last row. */
+.cat-tiles { grid-template-columns: repeat(6, 1fr); }
+.cat-tile { grid-column: span 2; aspect-ratio: 16 / 10; }
+.cat-tile:last-child:nth-child(3n + 1) { grid-column: span 6; aspect-ratio: 32 / 9; }
+.cat-tile:nth-last-child(2):nth-child(3n + 1), .cat-tile:last-child:nth-child(3n + 2) { grid-column: span 3; aspect-ratio: 2 / 1; }
+
+/* Project gallery keeps every photo's real shape (portrait or landscape), nothing cropped. */
+.gallery { display: block; columns: 3 260px; column-gap: 12px; }
+.g-item, .g-item:first-child { display: block; width: 100%; aspect-ratio: auto; margin: 0 0 12px; break-inside: avoid; grid-column: auto; grid-row: auto; }
+.g-item img { position: static; width: 100%; height: auto; }
+
+@media (max-width: 1100px) {
+  .cat-tiles { grid-template-columns: repeat(2, 1fr); }
+  .cat-tile, .cat-tile:last-child:nth-child(3n + 1), .cat-tile:nth-last-child(2):nth-child(3n + 1), .cat-tile:last-child:nth-child(3n + 2) { grid-column: span 1; aspect-ratio: 16 / 10; }
+  .cat-tile:last-child:nth-child(odd) { grid-column: span 2; aspect-ratio: 32 / 10; }
+}
+@media (max-width: 767px) {
+  .values-media, .photo-strip .img-zoom, .exp-media { aspect-ratio: 4 / 3; }
+  .feature-media { aspect-ratio: 16 / 10; }
+  .cat-tile, .cat-tile:last-child:nth-child(odd) { aspect-ratio: 4 / 3; }
+  .gallery { columns: 2 140px; column-gap: 8px; }
+  .g-item, .g-item:first-child { margin-bottom: 8px; }
+  .band { min-height: 0; }
+  .band-media { inset: -8% 0; }
+  .panel.is-active { height: min(340px, 92vw); }
+}
+
+/* =====================================================================
+   ARABIC TEXT WIDTHS — "ch" is based on the width of "0", which is very narrow
+   in the Arabic fonts, so Arabic paragraphs were squeezed into thin columns.
+   Arabic uses em-based widths instead.
+   ===================================================================== */
+html[lang="ar"] body { line-height: 1.9; }
+html[lang="ar"] .lead { max-width: 38em; }
+html[lang="ar"] .statement { max-width: 24em; }
+html[lang="ar"] .hero-text { max-width: 30em; }
+html[lang="ar"] .band-title { max-width: 14em; }
+html[lang="ar"] .panel-body p { max-width: 28em; }
+html[lang="ar"] .story-foot { max-width: 40em; }
+html[lang="ar"] .kw-intro { max-width: 32em; }
+html[lang="ar"] .prose p, html[lang="ar"] .kw-d-text { line-height: 1.95; }
