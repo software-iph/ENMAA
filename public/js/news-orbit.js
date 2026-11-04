@@ -58,7 +58,7 @@
   // ---------- animation loop (runs only while something moves and the ring is on screen) ----------
   // A spring pulls the ring to the chosen card. It starts at the finger's speed, so letting go
   // flows straight into the settle (no coasting, then crawling back). Time-based: same feel at 60 or 120 Hz.
-  const STIFF = 190, DAMP = 25;
+  const STIFF = 36, DAMP = 12;
   let raf = 0;
   let visible = false;
   let lastFrame = 0;
@@ -109,13 +109,11 @@
   // ---------- drag ----------
   let lastX = 0, startX = 0, moved = false;
   let samples = []; // recent [time, angle] while dragging, to know the flick speed
-  let dragFrom = null; // ring angle when the finger went down
   stage.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     dragging = true; moved = false;
     startX = lastX = e.clientX; vel = 0;
     samples = [[performance.now(), rot]];
-    dragFrom = rot;
     stage.classList.add('is-dragging');
     kick();
   });
@@ -134,18 +132,13 @@
   });
   // Let go: pick the card the swipe was heading to (a quick flick can pass one or two cards).
   function release(speed) {
-    vel = Math.max(-700, Math.min(700, speed));
+    vel = Math.max(-600, Math.min(600, speed));
     const here = indexAt(rot);
-    const aim = indexAt(rot + vel * 0.16);
+    const aim = indexAt(rot + vel * 0.24);
     let d = ((aim - here) % n + n) % n;
     if (d > n / 2) d -= n;
     d = Math.max(-2, Math.min(2, d));
-    // a deliberate drag of a fifth of a card turns to the next story, even without a flick
-    if (!d && dragFrom !== null && Math.abs(rot - dragFrom) > step * 0.2) {
-      const card = sign * here * step + Math.round((rot - sign * here * step) / 360) * 360;
-      if (Math.sign(rot - dragFrom) === Math.sign(rot - card) || Math.abs(rot - card) < 0.5) d = Math.sign(rot - dragFrom) * sign;
-    }
-    dragFrom = null;
+
     goTo(here + d);
     // never shoot past the chosen card because of the finger's speed
     if (Math.sign(vel) !== Math.sign(target - rot)) vel *= 0.3;
