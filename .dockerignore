@@ -1,0 +1,14 @@
+.git
+.claude
+node_modules
+.env
+.env.*
+!.env.example
+data
+uploads/images/*
+uploads/files/*
+uploads/cv/*
+*.log
+*.dump
+Dockerfile
+docker-compose.yml

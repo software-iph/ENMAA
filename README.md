@@ -108,3 +108,46 @@ Back up the PostgreSQL database (`pg_dump enmaa`) and the `uploads/` folder.
 - Legal texts (privacy, terms, consent wording) in **Settings**.
 - Use a dedicated PostgreSQL user with a strong password instead of `postgres`.
 - Run behind HTTPS (e.g. Nginx or a hosting platform) and set `BASE_URL`.
+
+## Run on a server with Docker
+
+`docker-compose.yml` runs the website and its own PostgreSQL 18 database. The site listens on port **3006**
+(`WEB_PORT`), so it can sit next to other sites on the same server.
+
+```bash
+git clone https://github.com/software-iph/ENMAA.git enmaa && cd enmaa
+cp .env.docker.example .env      # then edit: DB_PASSWORD, ADMIN_PASSWORD, BASE_URL
+docker compose up -d --build
+docker compose logs -f web       # "ENMAA website running at ..." = ready
+```
+
+Open `http://<server-ip>:3006` (dashboard: `/admin`). If a firewall is on: `sudo ufw allow 3006/tcp`.
+
+Update after a `git pull`: `docker compose up -d --build`. Data lives in Docker volumes
+(`enmaa_db-data`, `enmaa_uploads`, `enmaa_app-data`) and survives rebuilds.
+
+### Copy your local content to the server (optional)
+
+The first start fills the database with sample content. To use the content you edited locally instead:
+
+```bash
+# on your computer (Windows: "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe")
+pg_dump -U postgres -Fc enmaa -f enmaa.dump
+scp enmaa.dump user@server:~/enmaa/
+scp -r uploads/images uploads/files user@server:~/enmaa/uploads-local/
+
+# on the server, in ~/enmaa
+docker compose exec -T db pg_restore -U enmaa -d enmaa --clean --if-exists --no-owner --no-privileges < enmaa.dump
+docker compose cp uploads-local/images/. web:/app/uploads/images/
+docker compose cp uploads-local/files/. web:/app/uploads/files/
+docker compose restart web
+```
+
+After a restore the dashboard login is the one from your local database.
+
+### Later: the domain through Nginx Proxy Manager
+
+1. `docker network ls` — find the network of the Nginx Proxy Manager container.
+2. In `docker-compose.yml`, uncomment the two `networks` parts and put that network's name; `docker compose up -d`.
+3. In Nginx Proxy Manager → Add Proxy Host: domain → forward to `enmaa-site`, port `3000`, with a Let's Encrypt certificate.
+4. Set `BASE_URL=https://your-domain` in `.env`, run `docker compose up -d`, and you can remove the `3006` port.
