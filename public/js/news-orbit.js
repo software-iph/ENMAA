@@ -25,14 +25,14 @@
   }
 
   let rot = 0;          // current ring angle (deg)
-  let vel = 0;          // momentum after a drag
+  let vel = 0;          // speed (deg per second)
   let target = 0;       // angle the ring eases towards
   let dragging = false;
   let front = -1;
 
   const norm = (a) => ((a % 360) + 540) % 360 - 180;   // -> [-180, 180)
   const indexAt = (a) => ((Math.round(a / (sign * step)) % n) + n) % n;
-  const goTo = (i) => { target = sign * i * step + Math.round((rot - sign * i * step) / 360) * 360; vel = 0; };
+  const goTo = (i) => { target = sign * i * step + Math.round((rot - sign * i * step) / 360) * 360; };
   const go = (d) => { goTo(indexAt(target) + d); kick(); };
 
   function render() {
@@ -56,23 +56,26 @@
   }
 
   // ---------- animation loop (runs only while something moves and the ring is on screen) ----------
+  // A spring pulls the ring to the chosen card. It starts at the finger's speed, so letting go
+  // flows straight into the settle (no coasting, then crawling back). Time-based: same feel at 60 or 120 Hz.
+  const STIFF = 190, DAMP = 25;
   let raf = 0;
   let visible = false;
-  function frame() {
+  let lastFrame = 0;
+  function frame(now) {
     raf = 0;
+    const dt = Math.min(0.034, Math.max(0.001, (now - (lastFrame || now - 16)) / 1000));
+    lastFrame = now;
     if (!dragging) {
-      if (Math.abs(vel) > 0.03) {
-        rot += vel;
-        vel *= 0.93;
-        target = sign * indexAt(rot) * step + Math.round((rot - sign * indexAt(rot) * step) / 360) * 360;
-      } else {
-        vel = 0;
-        const d = target - rot;
-        rot = reduced || Math.abs(d) < 0.02 ? target : rot + d * 0.075;
+      if (reduced) { rot = target; vel = 0; }
+      else {
+        vel += (STIFF * (target - rot) - DAMP * vel) * dt;
+        rot += vel * dt;
+        if (Math.abs(target - rot) < 0.01 && Math.abs(vel) < 0.5) { rot = target; vel = 0; }
       }
     }
     render();
-    if (dragging || vel || rot !== target) kick();
+    if (dragging || vel || rot !== target) kick(); else lastFrame = 0;
   }
   function kick() { if (visible && !paused && !raf) raf = requestAnimationFrame(frame); }
   let paused = false; // the ring stands still while a story is open
@@ -104,11 +107,15 @@
   section.addEventListener('focusout', () => { focusIn = false; });
 
   // ---------- drag ----------
-  let lastX = 0, startX = 0, moved = false, lastT = 0;
+  let lastX = 0, startX = 0, moved = false;
+  let samples = []; // recent [time, angle] while dragging, to know the flick speed
+  let dragFrom = null; // ring angle when the finger went down
   stage.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     dragging = true; moved = false;
-    startX = lastX = e.clientX; lastT = performance.now(); vel = 0;
+    startX = lastX = e.clientX; vel = 0;
+    samples = [[performance.now(), rot]];
+    dragFrom = rot;
     stage.classList.add('is-dragging');
     kick();
   });
@@ -119,17 +126,40 @@
     const k = 180 / (R * Math.PI) * 1.15; // a card follows the finger
     rot -= dx * k;
     const now = performance.now();
-    vel = (-dx * k) * Math.min(1, 16 / Math.max(1, now - lastT));
-    lastX = e.clientX; lastT = now;
+    samples.push([now, rot]);
+    while (samples.length > 2 && now - samples[0][0] > 100) samples.shift();
+    lastX = e.clientX;
     target = rot;
     kick();
   });
+  // Let go: pick the card the swipe was heading to (a quick flick can pass one or two cards).
+  function release(speed) {
+    vel = Math.max(-700, Math.min(700, speed));
+    const here = indexAt(rot);
+    const aim = indexAt(rot + vel * 0.16);
+    let d = ((aim - here) % n + n) % n;
+    if (d > n / 2) d -= n;
+    d = Math.max(-2, Math.min(2, d));
+    // a deliberate drag of a fifth of a card turns to the next story, even without a flick
+    if (!d && dragFrom !== null && Math.abs(rot - dragFrom) > step * 0.2) {
+      const card = sign * here * step + Math.round((rot - sign * here * step) / 360) * 360;
+      if (Math.sign(rot - dragFrom) === Math.sign(rot - card) || Math.abs(rot - card) < 0.5) d = Math.sign(rot - dragFrom) * sign;
+    }
+    dragFrom = null;
+    goTo(here + d);
+    // never shoot past the chosen card because of the finger's speed
+    if (Math.sign(vel) !== Math.sign(target - rot)) vel *= 0.3;
+    lastFrame = 0;
+    kick();
+  }
   const end = () => {
     if (!dragging) return;
     dragging = false;
     stage.classList.remove('is-dragging');
-    if (Math.abs(vel) < 0.03) goTo(indexAt(rot));
-    kick();
+    const now = performance.now();
+    const first = samples[0];
+    const speed = first && now - first[0] < 160 && now > first[0] ? ((rot - first[1]) / (now - first[0])) * 1000 : 0;
+    release(speed);
   };
   window.addEventListener('pointerup', end);
   window.addEventListener('pointercancel', end);
@@ -242,12 +272,17 @@
   cards.forEach((c, i) => c.addEventListener('focus', () => { goTo(i); kick(); }));
   cards.forEach((c) => c.addEventListener('pointerenter', () => preload(Number(c.dataset.real))));
 
+  let wheelEnd = 0;
   // trackpad sideways swipe (vertical wheel keeps scrolling the page)
   stage.addEventListener('wheel', (e) => {
     if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
     e.preventDefault();
-    vel -= e.deltaX * 0.02;
+    rot -= e.deltaX * 0.12;
+    vel = 0;
+    target = rot;
     kick();
+    clearTimeout(wheelEnd);
+    wheelEnd = setTimeout(() => release(0), 90);
   }, { passive: false });
 
   // keyboard
