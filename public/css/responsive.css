@@ -126,7 +126,6 @@ img { image-rendering: auto; }
   .contact-list a { display: inline-block; padding: 10px 0; }
 
   /* Careers */
-  .vac-table tr { padding: 18px 0; }
   .vac-filters { gap: 10px; }
 
   /* Investors / Vendors */
