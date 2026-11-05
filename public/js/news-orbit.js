@@ -184,6 +184,7 @@
     preload((story - 1 + stories.length) % stories.length);
     content.scrollTop = 0;
     panel.scrollTop = 0;
+    panel.scrollLeft = 0;
     readProgress();
     const copy = modal.querySelector('[data-story-copy]');
     copy.textContent = copy.dataset.label || (copy.dataset.label = copy.textContent);

@@ -175,3 +175,10 @@ html.reduce-motion .story-panel { transform: none !important; }
   .story-scrim { touch-action: none; } /* the page behind does not scroll while a story is open */
 }
 .story-panel { overscroll-behavior: none; }
+
+/* Story photo always covers the full width:
+   - in Arabic the slide-in for next/previous story must also come back to its place
+   - nothing may stick out sideways, and the scrollbar takes no room (the reading bar shows progress) */
+html[dir="rtl"] .story-content.is-in.from-next, html[dir="rtl"] .story-content.is-in.from-prev { transform: none; }
+.story-panel { overflow-x: hidden; scrollbar-width: none; }
+.story-panel::-webkit-scrollbar { display: none; }
