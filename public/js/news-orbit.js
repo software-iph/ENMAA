@@ -57,7 +57,7 @@
 
   // ---------- animation loop (runs only while something moves and the ring is on screen) ----------
   // A spring pulls the ring to the chosen card. It starts at the finger's speed, so letting go
-  // flows straight into the settle (no coasting, then crawling back). Time-based: same feel at 60 or 120 Hz.
+  // flows straight into the glide (no coasting, then crawling back). Time-based: same feel at 60 or 120 Hz.
   const STIFF = 30, DAMP = 11;
   let raf = 0;
   let visible = false;
@@ -67,8 +67,14 @@
     const dt = Math.min(0.034, Math.max(0.001, (now - (lastFrame || now - 16)) / 1000));
     lastFrame = now;
     if (!dragging) {
-      if (reduced) { rot = target; vel = 0; }
-      else {
+      if (reduced) { rot = target; vel = 0; glide = null; }
+      else if (glide) {
+        // after a swipe: a slow, even glide to the closest picture (soft start, soft stop)
+        const p = Math.min(1, (now - glide.t0) / glide.dur);
+        const e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+        rot = glide.from + (glide.to - glide.from) * e;
+        if (p >= 1 || target !== glide.to) { if (p >= 1) rot = target; glide = null; vel = 0; }
+      } else {
         vel += (STIFF * (target - rot) - DAMP * vel) * dt;
         rot += vel * dt;
         if (Math.abs(target - rot) < 0.01 && Math.abs(vel) < 0.5) { rot = target; vel = 0; }
@@ -77,6 +83,8 @@
     render();
     if (dragging || vel || rot !== target) kick(); else lastFrame = 0;
   }
+  let glide = null; // {from, to, t0, dur} while gliding to the closest picture after a swipe
+  const SETTLE_MS = 1600;
   function kick() { if (visible && !paused && !raf) raf = requestAnimationFrame(frame); }
   let paused = false; // the ring stands still while a story is open
   const preloaded = new Set();
@@ -111,7 +119,7 @@
   stage.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     dragging = true; moved = false;
-    startX = lastX = e.clientX; vel = 0;
+    startX = lastX = e.clientX; vel = 0; glide = null;
     stage.classList.add('is-dragging');
     kick();
   });
@@ -130,6 +138,9 @@
   function release() {
     vel = 0;
     goTo(indexAt(rot));
+    // the further from the picture, the longer the glide (never rushed)
+    const far = Math.min(1, Math.abs(target - rot) / (step / 2));
+    glide = Math.abs(target - rot) < 0.05 ? null : { from: rot, to: target, t0: performance.now(), dur: SETTLE_MS * (0.6 + 0.4 * far) };
     lastFrame = 0;
     kick();
   }
