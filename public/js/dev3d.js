@@ -313,8 +313,28 @@ function init(DATA) {
     const hub = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(HUB, HUB, 0.3, 64), M.plaza));
     hub.position.y = TOP + 0.15;
     scene.add(hub);
+    // The ENMAA mark standing on the plaza: the three bars of the logo (same outline as on the
+    // website, 129 x 99 units), extruded like a sculpture.
+    const MARK = [
+      [[33, 4], ['L', 110, 4], ['C', 118, 4, 123, 2.9, 128, 0.6], ['L', 128, 18.5], ['C', 123.5, 23, 117, 25.3, 108, 25.4], ['L', 33, 25.4]],
+      [[0, 38.6], ['L', 101.3, 38.6], ['L', 101.3, 60.4], ['L', 0, 60.4]],
+      [[33, 73.6], ['L', 108, 73.6], ['C', 117, 73.7, 123.5, 76, 128, 80.5], ['L', 128, 98.4], ['C', 123, 96.2, 118, 95.1, 110, 95.1], ['L', 33, 95.1]],
+    ];
+    const MS = 0.03; // model units per logo unit (about 3.9 wide, 3 tall)
+    const mx = (x) => (x - 64.5) * MS;
+    const my = (y) => (99 - y) * MS;
     const monument = new THREE.Group();
-    [[0, 3.2, 1], [0, 1.6, 0.66], [0, 0, 1]].forEach(([, y, w]) => monument.add(box(2.4 * w, 0.5, 0.5, M.purple, -1.2 * (1 - w), y + 0.3, 0))); // the ENMAA "E"
+    MARK.forEach(([start, ...cmds]) => {
+      const sh = new THREE.Shape();
+      sh.moveTo(mx(start[0]), my(start[1]));
+      cmds.forEach(([c, ...v]) => {
+        if (c === 'L') sh.lineTo(mx(v[0]), my(v[1]));
+        else sh.bezierCurveTo(mx(v[0]), my(v[1]), mx(v[2]), my(v[3]), mx(v[4]), my(v[5]));
+      });
+      const g = new THREE.ExtrudeGeometry(sh, { depth: 0.5, bevelEnabled: false, curveSegments: 18 });
+      g.translate(0, 0, -0.25);
+      monument.add(shadowed(new THREE.Mesh(g, M.purple)));
+    });
     monument.position.y = TOP + 0.3;
     scene.add(monument);
 
