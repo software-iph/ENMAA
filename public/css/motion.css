@@ -28,14 +28,14 @@ html[dir="rtl"] .eyebrow-line { transform-origin: right; }
 .js .reveal.is-in .eyebrow-line { transform: scaleX(1); }
 
 /* ---------- section rule: E bars slide in, hairline draws ---------- */
-.js .sec-rule .e-icon rect { transform: scaleX(0); transform-origin: left; transition: transform .8s var(--ease-out); }
-.js .sec-rule .e-icon rect:nth-child(2) { transition-delay: .08s; }
-.js .sec-rule .e-icon rect:nth-child(3) { transition-delay: .16s; }
+.js .sec-rule .e-icon path { transform: scaleX(0); transform-origin: left; transition: transform .8s var(--ease-out); }
+.js .sec-rule .e-icon path:nth-child(2) { transition-delay: .08s; }
+.js .sec-rule .e-icon path:nth-child(3) { transition-delay: .16s; }
 .js .sec-rule .rule { transform: scaleX(0); transform-origin: left; transition: transform 1.2s var(--ease-out) .2s; }
 html[dir="rtl"] .sec-rule .rule { transform-origin: right; }
 .js .sec-rule .sec-label { opacity: 0; transform: translateX(-12px); transition: opacity .8s var(--ease-out) .5s, transform .8s var(--ease-out) .5s; }
 html[dir="rtl"].js .sec-rule .sec-label { transform: translateX(12px); }
-.js .sec-rule.is-in .e-icon rect, .js .sec-rule.is-in .rule { transform: scaleX(1); }
+.js .sec-rule.is-in .e-icon path, .js .sec-rule.is-in .rule { transform: scaleX(1); }
 .js .sec-rule.is-in .sec-label { opacity: 1; transform: none; }
 .sec-rule--light, .sec-rule--light .sec-label { color: var(--silver); }
 
@@ -63,10 +63,10 @@ html[dir="rtl"].js .sec-rule .sec-label { transform: translateX(12px); }
 .intro-screen { display: none; }
 html.intro .intro-screen { display: flex; position: fixed; inset: 0; z-index: 200; background: var(--plum); color: var(--white); flex-direction: column; align-items: center; justify-content: center; gap: 36px; animation: intro-out 1s var(--ease-io) 2.1s forwards; }
 .intro-mark { display: flex; align-items: center; gap: 22px; }
-.intro-e { width: 54px; height: 40px; fill: var(--white); }
-.intro-e rect { transform: scaleX(0); transform-origin: left; animation: bar .7s var(--ease-out) forwards; }
-.intro-e rect:nth-child(2) { animation-delay: .12s; }
-.intro-e rect:nth-child(3) { animation-delay: .24s; }
+.intro-e { width: 54px; height: 41px; fill: var(--white); }
+.intro-e path { transform: scaleX(0); transform-origin: left; animation: bar .7s var(--ease-out) forwards; }
+.intro-e path:nth-child(2) { animation-delay: .12s; }
+.intro-e path:nth-child(3) { animation-delay: .24s; }
 .intro-word { font-family: 'Analogue', serif; font-size: 34px; letter-spacing: .36em; display: inline-flex; overflow: hidden; line-height: 1.2; }
 .intro-word span { display: inline-block; transform: translateY(110%); animation: rise .9s var(--ease-out) forwards; animation-delay: calc(.45s + var(--i) * 70ms); }
 .intro-line { width: 180px; height: 1px; background: rgba(255, 255, 255, .15); overflow: hidden; }

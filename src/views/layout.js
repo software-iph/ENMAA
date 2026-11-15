@@ -8,7 +8,8 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const paras = (s) => String(s ?? '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean).map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
 
 // The brand "E" device: three forward strokes.
-const eIcon = (cls = '') => `<svg class="e-icon ${cls}" viewBox="0 0 30 22" aria-hidden="true" focusable="false"><rect width="30" height="4"/><rect y="9" width="20" height="4"/><rect y="18" width="30" height="4"/></svg>`;
+// The ENMAA mark (the three bars of the logo, traced from /logos/en-purple.png).
+const eIcon = (cls = '') => `<svg class="e-icon ${cls}" viewBox="0 0 129 99" aria-hidden="true" focusable="false"><path d="M33 4H110C118 4 123 2.9 128 .6V18.5C123.5 23 117 25.3 108 25.4H33Z"/><path d="M0 38.6H101.3V60.4H0Z"/><path d="M33 73.6H108C117 73.7 123.5 76 128 80.5V98.4C123 96.2 118 95.1 110 95.1H33Z"/></svg>`;
 const arrow = `<span class="arr" aria-hidden="true">→</span>`;
 
 function sectionHeader(label, title, opts = {}) {
