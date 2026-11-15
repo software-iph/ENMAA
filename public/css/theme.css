@@ -190,3 +190,25 @@ html[lang="zh"] body, html[lang="zh"] h1, html[lang="zh"] h2, html[lang="zh"] h3
   font-family: "Montserrat", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", sans-serif;
 }
 html[lang="zh"] .nav-link, html[lang="zh"] .eyebrow { letter-spacing: .08em; }
+
+/* Our Developments: compact keyword cards on desktop, so the list is as tall as the 3D model */
+@media (min-width: 1101px) {
+  .kw-panel .sec-head { margin-bottom: 12px; }
+  .kw-intro { margin-bottom: 18px; font-size: 14px; }
+  .kw-buttons { gap: 7px; }
+  .kw-btn { grid-template-columns: 66px 1fr 22px; gap: 14px; min-height: 66px; padding-inline-end: 14px; }
+  html[dir="rtl"] .kw-btn { padding: 0 0 0 14px; }
+  /* two lines: title + count on the first, description on the second */
+  .kw-txt { padding: 8px 0; min-width: 0; display: grid; grid-template-columns: 1fr auto; align-items: baseline; column-gap: 10px; }
+  .kw-txt b { font-size: 15px; line-height: 1.25; grid-column: 1; grid-row: 1; }
+  .kw-txt small { margin-top: 3px; font-size: 12.5px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; grid-column: 1 / -1; grid-row: 2; }
+  .kw-count { margin-top: 0; font-size: 9.5px; grid-column: 2; grid-row: 1; white-space: nowrap; }
+  .kw-btn { min-height: 60px; }
+  .kw-intro { max-width: none; line-height: 1.55; }
+  .kw-badge { inset-inline-start: 5px; bottom: 5px; width: 22px; height: 22px; }
+  .kw-badge .kw-ico { width: 13px; height: 13px; }
+  .kw-tick { width: 22px; height: 22px; }
+  .kw-tick::after { left: 5px; top: 5px; width: 8px; height: 4px; }
+  html[lang="ar"] .kw-txt b { font-size: 16px; line-height: 1.35; }
+  .kw-stage { min-height: 700px; } /* laptops: the model stays as tall as the list */
+}
