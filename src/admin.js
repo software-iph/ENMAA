@@ -19,13 +19,34 @@ function readToken(req) {
   const m = /(?:^|;\s*)enmaa_admin=([a-f0-9]{64})/.exec(req.headers.cookie || '');
   return m ? m[1] : null;
 }
+// What a user can be given (ticked per user by a super account). A super account has everything plus "Users".
+const PERMS = {
+  content: 'Website content: home page, developments, news, vacancies, lists, site texts, page images and media library',
+  settings: 'Settings',
+  visitors: 'Visitor statistics',
+  messages: 'Messages: contact form and development enquiries',
+  careers: 'Job applications',
+  vendors: 'Vendor registrations',
+  investors: 'Investor requests',
+};
+// Which permission opens which kind of received form
+const TYPE_PERM = { contact: 'messages', project: 'messages', career: 'careers', vendor: 'vendors', investor: 'investors' };
+const cleanPerms = (list) => [...new Set((Array.isArray(list) ? list : []).filter((p) => PERMS[p]))];
+
 async function currentAdmin(req) {
   const token = readToken(req);
   if (!token) return null;
-  const row = await one('SELECT a.id, a.username, s.expires FROM sessions s JOIN admins a ON a.id = s.admin_id WHERE s.token = $1', [token]);
+  const row = await one('SELECT a.id, a.username, a.full_name, a.role, a.perms, s.expires FROM sessions s JOIN admins a ON a.id = s.admin_id WHERE s.token = $1', [token]);
   if (!row || Number(row.expires) < Date.now()) return null;
-  return { id: row.id, username: row.username, token };
+  const isSuper = row.role === 'super';
+  const perms = isSuper ? Object.keys(PERMS) : cleanPerms(row.perms);
+  const types = Object.keys(TYPE_PERM).filter((t) => perms.includes(TYPE_PERM[t]));
+  return { id: row.id, username: row.username, fullName: row.full_name, isSuper, perms, types, token };
 }
+const can = (req, perm) => req.admin.perms.includes(perm);
+// Route guard: the user needs at least one of the given permissions.
+const need = (...perms) => (req, res, next) => (perms.some((p) => can(req, p)) ? next() : res.status(403).json({ error: 'Your account does not have access to this section.' }));
+const superOnly = (req, res, next) => (req.admin.isSuper ? next() : res.status(403).json({ error: 'Only a super account can manage users.' }));
 async function requireAuth(req, res, next) {
   const admin = await currentAdmin(req);
   if (!admin) return res.status(401).json({ error: 'Not signed in' });
@@ -66,7 +87,7 @@ router.post('/api/logout', async (req, res) => {
 router.get('/api/me', async (req, res) => {
   const admin = await currentAdmin(req);
   if (!admin) return res.status(401).json({ error: 'Not signed in' });
-  res.json({ username: admin.username });
+  res.json({ id: admin.id, username: admin.username, fullName: admin.fullName, isSuper: admin.isSuper, perms: admin.perms, types: admin.types });
 });
 
 const api = express.Router();
@@ -74,13 +95,14 @@ api.use(requireAuth);
 
 // ---------- overview ----------
 api.get('/stats', async (req, res) => {
+  const T = [req.admin.types]; // only the forms this user may see
   const [byType, totals, recent, daily, content] = await Promise.all([
-    all(`SELECT type, COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'new')::int AS unread FROM submissions GROUP BY type`),
+    all(`SELECT type, COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'new')::int AS unread FROM submissions WHERE type = ANY($1) GROUP BY type`, T),
     one(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'new')::int AS unread,
-         COUNT(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS week FROM submissions`),
-    all('SELECT id, type, status, name, email, subject, created_at FROM submissions ORDER BY id DESC LIMIT 6'),
+         COUNT(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS week FROM submissions WHERE type = ANY($1)`, T),
+    all('SELECT id, ref, type, status, name, email, subject, created_at FROM submissions WHERE type = ANY($1) ORDER BY id DESC LIMIT 6', T),
     all(`SELECT to_char(created_at, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n FROM submissions
-         WHERE created_at >= current_date - 29 GROUP BY day ORDER BY day`),
+         WHERE type = ANY($1) AND created_at >= current_date - 29 GROUP BY day ORDER BY day`, T),
     one(`SELECT (SELECT COUNT(*) FROM projects)::int AS projects, (SELECT COUNT(*) FROM news)::int AS news,
          (SELECT COUNT(*) FROM vacancies WHERE active)::int AS vacancies, (SELECT COUNT(*) FROM media)::int AS media,
          (SELECT COUNT(*) FROM texts)::int AS texts`),
@@ -88,6 +110,7 @@ api.get('/stats', async (req, res) => {
   const itemRows = await all('SELECT kind, COUNT(*)::int AS n FROM items GROUP BY kind');
   content.items = Object.fromEntries(itemRows.map((r) => [r.kind, r.n]));
   const d = today();
+  if (!can(req, 'visitors')) return res.json({ byType, totals, recent, daily, content, visits: null });
   const visits = await one(`SELECT COUNT(DISTINCT visitor) FILTER (WHERE day = $1)::int AS today,
     COUNT(DISTINCT (day::text || ':' || visitor))::int AS week FROM page_views WHERE day > $1::date - 7`, [d]);
   res.json({ byType, totals, recent, daily, content, visits });
@@ -95,29 +118,47 @@ api.get('/stats', async (req, res) => {
 
 // ---------- submissions (contact inbox) ----------
 const STATUSES = ['new', 'in_progress', 'replied', 'archived'];
+const intId = (v) => (Number.isInteger(Number(v)) ? Number(v) : -1);
 
+// query.types: the forms this user may see, optionally narrowed to one box (messages, careers, vendors, investors)
 function listSubmissions(query) {
   const where = [];
   const params = [];
   const p = (v) => { params.push(v); return `$${params.length}`; };
+  where.push(`type = ANY(${p(query.types)})`);
   if (query.type) where.push(`type = ${p(query.type)}`);
   if (query.status) where.push(`status = ${p(query.status)}`);
   else if (!query.all) where.push("status <> 'archived'");
   if (query.q) {
     const like = p(`%${query.q}%`);
-    where.push(`(name ILIKE ${like} OR email ILIKE ${like} OR subject ILIKE ${like} OR message ILIKE ${like} OR organisation ILIKE ${like})`);
+    where.push(`(name ILIKE ${like} OR email ILIKE ${like} OR subject ILIKE ${like} OR message ILIKE ${like} OR organisation ILIKE ${like} OR ref ILIKE ${like} OR data::text ILIKE ${like})`);
   }
   return all(`SELECT * FROM submissions ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY id DESC`, params);
 }
 
+// Every submissions route only sees the forms this user is allowed to open.
+const boxTypes = (req) => {
+  const box = req.query.box;
+  return req.admin.types.filter((t) => !PERMS[box] || TYPE_PERM[t] === box);
+};
+api.use('/submissions', (req, res, next) => (req.admin.types.length ? next() : res.status(403).json({ error: 'Your account does not have access to received forms.' })));
+api.use('/submissions.csv', (req, res, next) => (req.admin.types.length ? next() : res.status(403).json({ error: 'Your account does not have access to received forms.' })));
+async function visibleSubmission(req, cols = '*') {
+  return one(`SELECT ${cols} FROM submissions WHERE id = $1 AND type = ANY($2)`, [intId(req.params.id), req.admin.types]);
+}
+
 api.get('/submissions', async (req, res) => {
-  const rows = await listSubmissions({ type: req.query.type, status: req.query.status, q: req.query.q, all: req.query.all === '1' });
+  const rows = await listSubmissions({ types: boxTypes(req), type: req.query.type, status: req.query.status, q: req.query.q, all: req.query.all === '1' });
   res.json(rows.map(({ ip, ...r }) => r));
 });
 
 api.get('/submissions.csv', async (req, res) => {
-  const rows = await listSubmissions({ type: req.query.type, status: req.query.status, q: req.query.q, all: true });
-  const cols = ['id', 'created_at', 'type', 'status', 'name', 'email', 'phone', 'organisation', 'country', 'subject', 'message', 'lang', 'notes'];
+  const rows = await listSubmissions({ types: boxTypes(req), type: req.query.type, status: req.query.status, q: req.query.q, all: true });
+  const cols = ['ref', 'created_at', 'type', 'status', 'name', 'email', 'phone', 'organisation', 'country', 'subject', 'message', 'details', 'attachments', 'lang', 'notes'];
+  for (const r of rows) {
+    r.details = Object.entries(r.data || {}).filter(([, v]) => v !== '' && v != null).map(([k, v]) => `${k}: ${v}`).join('\n');
+    r.attachments = [...(r.files || []).map((f) => f.name), r.file_name].filter(Boolean).join(', ');
+  }
   const cell = (v) => {
     let s = v instanceof Date ? v.toISOString() : String(v ?? '');
     if (/^[=+\-@]/.test(s)) s = "'" + s; // stop spreadsheet formula injection
@@ -128,10 +169,8 @@ api.get('/submissions.csv', async (req, res) => {
   res.type('text/csv').send('﻿' + csv);
 });
 
-const intId = (v) => (Number.isInteger(Number(v)) ? Number(v) : -1);
-
 api.get('/submissions/:id', async (req, res) => {
-  const row = await one('SELECT * FROM submissions WHERE id = $1', [intId(req.params.id)]);
+  const row = await visibleSubmission(req);
   if (!row) return res.status(404).json({ error: 'Not found' });
   res.json(row);
 });
@@ -139,7 +178,7 @@ api.get('/submissions/:id', async (req, res) => {
 api.patch('/submissions/:id', async (req, res) => {
   const { status, notes } = req.body || {};
   const id = intId(req.params.id);
-  if (!(await one('SELECT id FROM submissions WHERE id = $1', [id]))) return res.status(404).json({ error: 'Not found' });
+  if (!(await visibleSubmission(req, 'id'))) return res.status(404).json({ error: 'Not found' });
   if (status !== undefined) {
     if (!STATUSES.includes(status)) return res.status(400).json({ error: 'Bad status' });
     await run('UPDATE submissions SET status = $1, updated_at = now() WHERE id = $2', [status, id]);
@@ -148,10 +187,11 @@ api.patch('/submissions/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-async function deleteSubmission(id) {
-  const row = await one('SELECT file_path FROM submissions WHERE id = $1', [id]);
+async function deleteSubmission(id, types) {
+  const row = await one('SELECT file_path, files FROM submissions WHERE id = $1 AND type = ANY($2)', [id, types]);
   if (!row) return false;
   if (row.file_path) fs.unlink(path.join(UPLOADS, 'cv', path.basename(row.file_path)), () => {});
+  for (const f of row.files || []) fs.unlink(path.join(UPLOADS, 'docs', path.basename(f.file)), () => {});
   await run('DELETE FROM submissions WHERE id = $1', [id]);
   return true;
 }
@@ -160,23 +200,32 @@ api.post('/submissions/bulk', async (req, res) => {
   const { ids, action } = req.body || {};
   if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'No messages selected' });
   const list = ids.map(Number).filter(Number.isInteger);
-  if (action === 'delete') for (const id of list) await deleteSubmission(id);
-  else if (STATUSES.includes(action)) await run('UPDATE submissions SET status = $1, updated_at = now() WHERE id = ANY($2::int[])', [action, list]);
+  if (action === 'delete') for (const id of list) await deleteSubmission(id, req.admin.types);
+  else if (STATUSES.includes(action)) await run('UPDATE submissions SET status = $1, updated_at = now() WHERE id = ANY($2::int[]) AND type = ANY($3)', [action, list, req.admin.types]);
   else return res.status(400).json({ error: 'Unknown action' });
   res.json({ ok: true });
 });
 
 api.delete('/submissions/:id', async (req, res) => {
-  if (!(await deleteSubmission(intId(req.params.id)))) return res.status(404).json({ error: 'Not found' });
+  if (!(await deleteSubmission(intId(req.params.id), req.admin.types))) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
 });
 
 api.get('/submissions/:id/file', async (req, res) => {
-  const row = await one('SELECT file_path, file_name FROM submissions WHERE id = $1', [intId(req.params.id)]);
+  const row = await visibleSubmission(req, 'file_path, file_name');
   if (!row || !row.file_path) return res.status(404).send('Not found');
   const file = path.join(UPLOADS, 'cv', path.basename(row.file_path));
   if (!fs.existsSync(file)) return res.status(404).send('File missing');
   res.download(file, row.file_name || path.basename(file));
+});
+// Vendor attachments (never public: only through the dashboard, for users who can see vendor registrations)
+api.get('/submissions/:id/files/:n', async (req, res) => {
+  const row = await visibleSubmission(req, 'files');
+  const f = row && (row.files || [])[intId(req.params.n)];
+  if (!f) return res.status(404).send('Not found');
+  const file = path.join(UPLOADS, 'docs', path.basename(f.file));
+  if (!fs.existsSync(file)) return res.status(404).send('File missing');
+  res.download(file, f.name || path.basename(file));
 });
 
 // ---------- content ----------
@@ -190,6 +239,13 @@ async function uniqueSlug(table, wanted, id) {
   while (await one(`SELECT id FROM ${table} WHERE slug = $1 AND id <> $2`, [slug, id || 0])) slug = `${base}-${i++}`;
   return slug;
 }
+
+// ---------- section guards ----------
+for (const p of ['/projects', '/news', '/vacancies', '/items', '/texts', '/media']) api.use(p, need('content'));
+api.use('/visitors', need('visitors'));
+api.use('/visitors.csv', need('visitors'));
+api.use('/upload', need('content', 'settings'));
+api.use('/admins', superOnly);
 
 // Developments
 api.get('/projects', async (req, res) => res.json(await all('SELECT * FROM projects ORDER BY sort, id')));
@@ -320,8 +376,14 @@ api.delete('/media/:id', async (req, res) => {
 });
 
 // Settings
-api.get('/settings', async (req, res) => res.json(await getSettings()));
-api.put('/settings', async (req, res) => { await saveSettings(req.body || {}); res.json({ ok: true }); });
+// Content editors can change the page photos (img_* keys) only; the rest needs the Settings permission.
+api.get('/settings', need('content', 'settings'), async (req, res) => res.json(await getSettings()));
+api.put('/settings', need('content', 'settings'), async (req, res) => {
+  const body = req.body || {};
+  const allowed = can(req, 'settings') ? body : Object.fromEntries(Object.entries(body).filter(([k]) => k.startsWith('img_')));
+  await saveSettings(allowed);
+  res.json({ ok: true });
+});
 
 // Account
 api.post('/password', async (req, res) => {
@@ -333,18 +395,53 @@ api.post('/password', async (req, res) => {
   await run('DELETE FROM sessions WHERE admin_id = $1 AND token <> $2', [admin.id, req.admin.token]);
   res.json({ ok: true });
 });
-api.get('/admins', async (req, res) => res.json(await all('SELECT id, username, created_at FROM admins ORDER BY id')));
+// Users (super accounts only)
+const USERNAME_RE = /^[a-zA-Z0-9._-]{3,40}$/;
+const supers = async () => (await one("SELECT COUNT(*)::int AS n FROM admins WHERE role = 'super'")).n;
+api.get('/admins', async (req, res) => res.json({
+  perms: PERMS,
+  users: (await all('SELECT id, username, full_name, role, perms, created_at FROM admins ORDER BY id')).map((u) => ({ ...u, perms: cleanPerms(u.perms) })),
+}));
 api.post('/admins', async (req, res) => {
-  const { username, password } = req.body || {};
-  if (!/^[a-zA-Z0-9._-]{3,40}$/.test(String(username || ''))) return res.status(400).json({ error: 'Username: 3–40 letters, numbers, dot, dash or underscore.' });
+  const { username, password, full_name, role, perms } = req.body || {};
+  if (!USERNAME_RE.test(String(username || ''))) return res.status(400).json({ error: 'Username: 3–40 letters, numbers, dot, dash or underscore.' });
   if (String(password || '').length < 10) return res.status(400).json({ error: 'Password must be at least 10 characters.' });
-  if (await one('SELECT id FROM admins WHERE username = $1', [username])) return res.status(400).json({ error: 'That username already exists.' });
-  await run('INSERT INTO admins (username, pass_hash) VALUES ($1, $2)', [username, hashPassword(password)]);
+  if (await one('SELECT id FROM admins WHERE lower(username) = lower($1)', [username])) return res.status(400).json({ error: 'That username already exists.' });
+  const isSuper = role === 'super';
+  const list = cleanPerms(perms);
+  if (!isSuper && !list.length) return res.status(400).json({ error: 'Tick at least one section this user can open.' });
+  await run('INSERT INTO admins (username, pass_hash, full_name, role, perms) VALUES ($1, $2, $3, $4, $5)',
+    [username, hashPassword(password), String(full_name || '').trim().slice(0, 100), isSuper ? 'super' : 'user', JSON.stringify(isSuper ? [] : list)]);
+  res.json({ ok: true });
+});
+api.put('/admins/:id', async (req, res) => {
+  const id = intId(req.params.id);
+  const user = await one('SELECT * FROM admins WHERE id = $1', [id]);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  const { full_name, role, perms, password } = req.body || {};
+  const isSuper = role === 'super';
+  const list = cleanPerms(perms);
+  if (user.role === 'super' && !isSuper) {
+    if (id === req.admin.id) return res.status(400).json({ error: 'You cannot remove super access from your own account.' });
+    if ((await supers()) <= 1) return res.status(400).json({ error: 'There must always be at least one super account.' });
+  }
+  if (!isSuper && !list.length) return res.status(400).json({ error: 'Tick at least one section this user can open.' });
+  if (password && String(password).length < 10) return res.status(400).json({ error: 'New password must be at least 10 characters.' });
+  await run('UPDATE admins SET full_name = $1, role = $2, perms = $3 WHERE id = $4',
+    [String(full_name ?? user.full_name).trim().slice(0, 100), isSuper ? 'super' : 'user', JSON.stringify(isSuper ? [] : list), id]);
+  if (password) {
+    await run('UPDATE admins SET pass_hash = $1 WHERE id = $2', [hashPassword(password), id]);
+    await run('DELETE FROM sessions WHERE admin_id = $1 AND token <> $2', [id, req.admin.token]); // signs that user out
+  }
   res.json({ ok: true });
 });
 api.delete('/admins/:id', async (req, res) => {
-  if (intId(req.params.id) === req.admin.id) return res.status(400).json({ error: 'You cannot remove your own account.' });
-  await run('DELETE FROM admins WHERE id = $1', [intId(req.params.id)]);
+  const id = intId(req.params.id);
+  if (id === req.admin.id) return res.status(400).json({ error: 'You cannot remove your own account.' });
+  const user = await one('SELECT role FROM admins WHERE id = $1', [id]);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  if (user.role === 'super' && (await supers()) <= 1) return res.status(400).json({ error: 'There must always be at least one super account.' });
+  await run('DELETE FROM admins WHERE id = $1', [id]);
   res.json({ ok: true });
 });
 

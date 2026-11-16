@@ -7,3 +7,4 @@ uploads/cv/*
 !uploads/*/.gitkeep
 .claude/
 *.dump
+uploads/docs/*

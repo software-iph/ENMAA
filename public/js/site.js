@@ -412,8 +412,24 @@
   // ---------- forms ----------
   document.querySelectorAll('.file-field input').forEach((inp) => inp.addEventListener('change', () => {
     const name = inp.closest('.file-field').querySelector('.file-name');
-    name.textContent = inp.files[0] ? inp.files[0].name : '';
+    name.textContent = [...inp.files].map((f) => f.name).join(', ');
   }));
+
+  // Fields required only for some answers, e.g. the registration number when the applicant is a company.
+  const reqIfFields = [...document.querySelectorAll('[data-req-if]')];
+  const reqIfOn = (ctl) => {
+    const [other, want] = ctl.dataset.reqIf.split('=');
+    const src = ctl.form && ctl.form.elements[other];
+    return !!src && src.value === want;
+  };
+  const syncReqIf = () => reqIfFields.forEach((ctl) => {
+    const on = reqIfOn(ctl);
+    ctl.required = on;
+    const mark = ctl.closest('.field').querySelector('.req-if');
+    if (mark) mark.hidden = !on;
+  });
+  reqIfFields.forEach((ctl) => ctl.form && ctl.form.addEventListener('change', syncReqIf));
+  syncReqIf();
 
   const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   const setErr = (field, msg) => {
@@ -432,7 +448,11 @@
       if (!ctl) return;
       let msg = '';
       if (ctl.type === 'checkbox') { if (ctl.required && !ctl.checked) msg = T.err_consent; }
-      else if (ctl.type === 'file') {
+      else if (ctl.type === 'file' && ctl.hasAttribute('data-doc')) {
+        // vendor attachments: PDF, DOCX, JPG, PNG · 10 MB each · 5 files across the form
+        const total = [...form.querySelectorAll('input[data-doc]')].reduce((n, i) => n + i.files.length, 0);
+        if ([...ctl.files].some((f) => !/\.(pdf|docx|jpe?g|png)$/i.test(f.name) || f.size > 10 * 1024 * 1024) || total > 5) msg = T.err_files;
+      } else if (ctl.type === 'file') {
         const file = ctl.files[0];
         if (ctl.required && !file) msg = T.err_file;
         else if (file && (!/\.(pdf|docx)$/i.test(file.name) || file.size > 5 * 1024 * 1024)) msg = T.err_file;
@@ -489,14 +509,15 @@
   });
 
   // No-JS fallback confirmation (?sent=1)
-  const sent = new URLSearchParams(location.search).get('sent');
+  const qs = new URLSearchParams(location.search);
+  const sent = qs.get('sent');
   if (sent) {
     const form = document.querySelector('form[data-enhance]');
     if (form && sent === '1') {
       const done = document.createElement('div');
       done.className = 'form-done';
       done.innerHTML = '<p class="h4"></p>';
-      done.querySelector('p').textContent = form.dataset.success;
+      done.querySelector('p').textContent = form.dataset.success.replace('{ref}', qs.get('ref') || '');
       form.replaceWith(done);
       done.scrollIntoView();
     }

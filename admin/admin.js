@@ -5,7 +5,18 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-  const TYPES = { contact: 'Contact', career: 'Job application', investor: 'Investor interest', project: 'Project enquiry' };
+  const TYPES = { contact: 'Contact', project: 'Project enquiry', career: 'Job application', vendor: 'Vendor registration', investor: 'Investor request' };
+  // Received forms are split into boxes; each box is its own permission.
+  const BOXES = {
+    messages: { label: 'Messages', types: ['contact', 'project'], icon: 'inbox' },
+    careers: { label: 'Job applications', types: ['career'], icon: 'briefcase' },
+    vendors: { label: 'Vendor registrations', types: ['vendor'], icon: 'tools' },
+    investors: { label: 'Investor requests', types: ['investor'], icon: 'chart' },
+  };
+  const boxOf = (type) => Object.keys(BOXES).find((b) => BOXES[b].types.includes(type));
+  // What the signed-in account may open (a super account has everything)
+  const can = (perm) => !!me && (me.isSuper || me.perms.includes(perm));
+  const PAGE_PERM = { visitors: 'visitors', projects: 'content', project: 'content', news: 'content', article: 'content', vacancies: 'content', vacancy: 'content', list: 'content', texts: 'content', images: 'content', media: 'content', settings: 'settings' };
   const STATUSES = { new: 'New', in_progress: 'In progress', replied: 'Replied', archived: 'Archived' };
   const LANGS = [['en', 'English'], ['ar', 'Arabic'], ['it', 'Italian'], ['tr', 'Turkish'], ['zh', 'Chinese']];
   const LANG_LABEL = Object.fromEntries(LANGS);
@@ -22,7 +33,8 @@
     box.querySelectorAll(':scope > .lang-panel').forEach((p) => { p.hidden = p.dataset.lp !== b.dataset.lt; });
   });
   let me = null;
-  let unread = 0;
+  let unreadBox = {};
+  let curBox = null;
 
   // ---------- api ----------
   async function api(path, opts = {}) {
@@ -63,11 +75,14 @@
     const [page, id] = route();
     try {
       const s = await api('/stats');
-      unread = s.totals.unread || 0;
+      unreadBox = {};
+      for (const r of s.byType) { const b = boxOf(r.type); unreadBox[b] = (unreadBox[b] || 0) + r.unread; }
+      if (page === 'inbox') curBox = hashQuery().get('box') || Object.keys(BOXES).find((b) => can(b));
       shell(page);
       const main = $('.main');
+      const blocked = (PAGE_PERM[page] && !can(PAGE_PERM[page])) || (['inbox', 'message'].includes(page) && !me.types.length);
       const views = { overview, visitors, inbox, message, projects, project: projectEdit, news, article: newsEdit, vacancies, vacancy: vacancyEdit, settings, account, list: listPage, texts: textsPage, images: pageImages, media: mediaPage };
-      await (views[page] || overview)(main, id, s);
+      await (blocked ? noAccess : views[page] || overview)(main, id, s);
       main.focus?.();
     } catch (e) { if (me) toast(e.message, true); }
   }
@@ -132,7 +147,7 @@
 
   function shell(page) {
     const [, sub] = route();
-    const active = { message: 'inbox', project: 'projects', article: 'news', vacancy: 'vacancies', list: `list/${sub}` }[page] || page;
+    const active = { project: 'projects', article: 'news', vacancy: 'vacancies', list: `list/${sub}` }[page] || page;
     const link = (key, label, ic, extra = '') => `<a href="#/${key}" class="${active === key ? 'on' : ''}">${icon(ic)}<span class="lbl">${label}</span>${extra}</a>`;
     const listLinks = (group) => Object.entries(LISTS).filter(([, [, g]]) => g === group).map(([k, [ic]]) => link(`list/${k}`, LIST_LABELS[k], ic)).join('');
     app.innerHTML = `<div class="mobile-top"><img src="/logos/en-white.png" alt="ENMAA"><button type="button" id="menu">Menu</button></div>
@@ -141,27 +156,23 @@
         <div class="brand"><img src="/logos/en-white.png" alt="ENMAA"><small>Dashboard</small></div>
         <nav>
           ${link('overview', 'Overview', 'home')}
-          <div class="group">Statistics</div>
-          ${link('visitors', 'Visitors', 'trend')}
-          <div class="group">Home page</div>
+          ${can('visitors') ? `<div class="group">Statistics</div>${link('visitors', 'Visitors', 'trend')}` : ''}
+          ${can('content') ? `<div class="group">Home page</div>
           ${listLinks('Home')}
           <div class="group">Content</div>
           ${link('projects', 'Developments', 'building')}
           ${link('news', 'News', 'news')}
           ${link('vacancies', 'Vacancies', 'briefcase')}
-          ${listLinks('Content')}
-          <div class="group">Site</div>
-          ${link('texts', 'Site texts (EN / AR)', 'text')}
-          ${link('images', 'Page images', 'image')}
-          ${link('media', 'Media library', 'gallery')}
-          ${link('settings', 'Settings', 'gear')}
-          <div class="group">Received</div>
-          ${link('inbox', 'Messages', 'inbox', unread ? `<span class="badge">${unread}</span>` : '')}
+          ${listLinks('Content')}` : ''}
+          ${can('content') || can('settings') ? '<div class="group">Site</div>' : ''}
+          ${can('content') ? `${link('texts', 'Site texts', 'text')}${link('images', 'Page images', 'image')}${link('media', 'Media library', 'gallery')}` : ''}
+          ${can('settings') ? link('settings', 'Settings', 'gear') : ''}
+          ${me.types.length ? `<div class="group">Received</div>${Object.entries(BOXES).filter(([b]) => can(b)).map(([b, x]) => `<a href="#/inbox?box=${b}" class="${['inbox', 'message'].includes(page) && curBox === b ? 'on' : ''}">${icon(x.icon)}<span class="lbl">${x.label}</span>${unreadBox[b] ? `<span class="badge">${unreadBox[b]}</span>` : ''}</a>`).join('')}` : ''}
           <div class="group">Account</div>
-          ${link('account', 'Users & password', 'user')}
+          ${link('account', me.isSuper ? 'Users & password' : 'My password', 'user')}
           <a href="/" target="_blank" rel="noopener">${icon('external')}<span class="lbl">View website</span></a>
         </nav>
-        <div class="foot">Signed in as <b>${esc(me.username)}</b> · <button type="button" id="logout">Sign out</button></div>
+        <div class="foot">Signed in as <b>${esc(me.fullName || me.username)}</b> · <button type="button" id="logout">Sign out</button></div>
       </aside>
       <main class="main" tabindex="-1"></main>
     </div>`;
@@ -170,6 +181,7 @@
   }
 
   // ---------- overview ----------
+  // Shows only what this account may open: content tiles, visitor numbers and the received forms it can see.
   async function overview(main, _id, s) {
     const byType = Object.fromEntries(s.byType.map((r) => [r.type, r]));
     const days = [];
@@ -177,8 +189,19 @@
     const max = Math.max(1, ...days.map((d) => d[1]));
     const it = s.content.items || {};
     const tile = (href, n, label, ic) => `<a class="card tile" href="${href}"><div class="n">${n}</div><div class="l">${icon(ic)}${label}</div></a>`;
-    main.innerHTML = `<div class="top"><h1>Overview</h1><div class="actions"><a class="btn" href="#/inbox">Open messages</a></div></div>
-      <div class="tiles">
+    const myBoxes = Object.keys(BOXES).filter((b) => can(b));
+    const received = myBoxes.length > 0;
+    const stat = (n, label, href) => `<div class="card stat">${href ? `<a href="${href}">` : ''}<div class="n">${n}</div><div class="l">${label}</div>${href ? '</a>' : ''}</div>`;
+    const stats = [
+      s.visits ? stat(s.visits.today || 0, 'Visitors today', '#/visitors?period=today') : '',
+      s.visits ? stat(s.visits.week || 0, 'Visitors, last 7 days', '#/visitors?period=7') : '',
+      ...myBoxes.map((b) => stat(unreadBox[b] || 0, `New: ${BOXES[b].label.toLowerCase()}`, `#/inbox?box=${b}&status=new`)),
+      received ? stat(s.totals.week || 0, 'Received in the last 7 days') : '',
+      can('content') ? stat(s.content.vacancies, 'Open vacancies', '#/vacancies') : '',
+    ].filter(Boolean);
+    main.innerHTML = `<div class="top"><h1>Overview</h1><div class="actions">${received ? `<a class="btn" href="#/inbox?box=${myBoxes[0]}">Open ${BOXES[myBoxes[0]].label.toLowerCase()}</a>` : ''}</div></div>
+      <p class="muted" style="margin:-6px 0 18px">Signed in as <b>${esc(me.fullName || me.username)}</b>${me.isSuper ? ' · super account (full access)' : ''}</p>
+      ${can('content') ? `<div class="tiles">
         ${tile('#/list/hero_slide', it.hero_slide || 0, 'Hero slides', 'slides')}
         ${tile('#/list/service', it.service || 0, 'What we do', 'layers')}
         ${tile('#/list/value', it.value || 0, 'Values', 'star')}
@@ -197,29 +220,27 @@
         <a class="btn ghost sm" href="#/list/hero_slide">${icon('plus')} Add hero slide</a>
         <a class="btn ghost sm" href="#/media">${icon('plus')} Upload images</a>
         <a class="btn ghost sm" href="#/texts">${icon('text')} Edit site texts</a>
-      </div></div>
-      <div class="grid g3" style="margin-top:20px">
-        <div class="card stat"><a href="#/visitors?period=today"><div class="n">${s.visits?.today || 0}</div><div class="l">Visitors today</div></a></div>
-        <div class="card stat"><a href="#/visitors?period=7"><div class="n">${s.visits?.week || 0}</div><div class="l">Visitors, last 7 days</div></a></div>
-        <div class="card stat"><a href="#/inbox?status=new"><div class="n">${s.totals.unread || 0}</div><div class="l">New messages</div></a></div>
-        <div class="card stat"><div class="n">${s.totals.week || 0}</div><div class="l">Received in the last 7 days</div></div>
-        <div class="card stat"><div class="n">${s.totals.total || 0}</div><div class="l">All messages</div></div>
-        <div class="card stat"><div class="n">${s.content.vacancies}</div><div class="l">Open vacancies</div></div>
-      </div>
-      <div class="grid g2" style="margin-top:20px">
-        <div class="card"><h2>Messages by form</h2>
+      </div></div>` : ''}
+      ${stats.length ? `<div class="grid g3" style="margin-top:20px">${stats.join('')}</div>` : ''}
+      ${received ? `<div class="grid g2" style="margin-top:20px">
+        <div class="card"><h2>Received by form</h2>
           <table><thead><tr><th>Form</th><th>New</th><th>Total</th></tr></thead><tbody>
-          ${Object.entries(TYPES).map(([k, l]) => `<tr data-go="#/inbox?type=${k}"><td>${l}</td><td>${byType[k]?.unread || 0}</td><td>${byType[k]?.total || 0}</td></tr>`).join('')}
+          ${Object.entries(TYPES).filter(([k]) => me.types.includes(k)).map(([k, l]) => `<tr data-go="#/inbox?box=${boxOf(k)}&type=${k}"><td>${l}</td><td>${byType[k]?.unread || 0}</td><td>${byType[k]?.total || 0}</td></tr>`).join('')}
           </tbody></table></div>
-        <div class="card"><h2>Messages, last 30 days</h2>
-          <div class="bars" role="img" aria-label="Messages per day over the last 30 days">${days.map(([d, n]) => `<div style="height:${(n / max) * 100}%" title="${fmtDate(d)}: ${n}"></div>`).join('')}</div>
+        <div class="card"><h2>Received, last 30 days</h2>
+          <div class="bars" role="img" aria-label="Submissions per day over the last 30 days">${days.map(([d, n]) => `<div style="height:${(n / max) * 100}%" title="${fmtDate(d)}: ${n}"></div>`).join('')}</div>
           <div class="bars-axis"><span>${fmtDate(days[0][0])}</span><span>Today</span></div></div>
       </div>
-      <div class="card" style="margin-top:20px"><h2>Latest messages</h2>
+      <div class="card" style="margin-top:20px"><h2>Latest received</h2>
         ${s.recent.length ? `<table><tbody>${s.recent.map((r) => `<tr class="${r.status === 'new' ? 'unread' : ''}" data-go="#/message/${r.id}">
-          <td><span class="pill type">${TYPES[r.type] || r.type}</span></td><td>${esc(r.name)}</td><td class="clip">${esc(r.subject)}</td><td class="nowrap muted">${fmtDate(r.created_at)}</td></tr>`).join('')}</tbody></table>` : '<p class="muted">No messages yet. Website form submissions will appear here.</p>'}
-      </div>`;
+          <td class="nowrap muted">${esc(r.ref || '')}</td><td><span class="pill type">${TYPES[r.type] || r.type}</span></td><td>${esc(r.name)}</td><td class="clip">${esc(r.subject)}</td><td class="nowrap muted">${fmtDate(r.created_at)}</td></tr>`).join('')}</tbody></table>` : '<p class="muted">Nothing received yet. Website form submissions will appear here.</p>'}
+      </div>` : ''}
+      ${!can('content') && !stats.length && !received ? '<div class="empty">Use the menu on the left to open the sections of your account.</div>' : ''}`;
     bindRowLinks(main);
+  }
+  function noAccess(main) {
+    main.innerHTML = `<div class="top"><h1>No access</h1></div>
+      <div class="empty">Your account cannot open this section. A super account can give you access under Users &amp; password.</div>`;
   }
   function bindRowLinks(root) {
     $$('[data-go]', root).forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('input,button,a')) location.hash = tr.dataset.go; }));
@@ -385,11 +406,16 @@
 
   async function inbox(main) {
     const q = hashQuery();
-    const state = { type: q.get('type') || '', status: q.get('status') || '', q: q.get('q') || '' };
-    main.innerHTML = `<div class="top"><h1>Messages</h1><div class="actions"><a class="btn ghost" id="csv" href="#">Export CSV</a></div></div>
-      <div class="tabsbar" role="tablist">${[['', 'All forms'], ...Object.entries(TYPES)].map(([k, l]) => `<button type="button" role="tab" data-type="${k}" class="${state.type === k ? 'on' : ''}" aria-selected="${state.type === k}">${l}</button>`).join('')}</div>
+    const myBoxes = Object.keys(BOXES).filter((b) => can(b));
+    const box = myBoxes.includes(q.get('box')) ? q.get('box') : myBoxes[0];
+    curBox = box;
+    const B = BOXES[box];
+    const state = { type: B.types.includes(q.get('type')) ? q.get('type') : '', status: q.get('status') || '', q: q.get('q') || '' };
+    const extra = box === 'vendors' ? ', company, activities' : box === 'investors' ? ', organisation, sector' : '';
+    main.innerHTML = `<div class="top"><h1>${B.label}</h1><div class="actions"><a class="btn ghost" id="csv" href="#">Export CSV</a></div></div>
+      ${B.types.length > 1 ? `<div class="tabsbar" role="tablist">${[['', 'All'], ...B.types.map((k) => [k, TYPES[k]])].map(([k, l]) => `<button type="button" role="tab" data-type="${k}" class="${state.type === k ? 'on' : ''}" aria-selected="${state.type === k}">${l}</button>`).join('')}</div>` : ''}
       <div class="filters">
-        <input type="search" id="q" placeholder="Search name, email, subject, message…" value="${esc(state.q)}" aria-label="Search messages">
+        <input type="search" id="q" placeholder="Search reference, name, email${extra}…" value="${esc(state.q)}" aria-label="Search">
         <select id="status" aria-label="Status"><option value="">Open (not archived)</option>${Object.entries(STATUSES).map(([k, l]) => `<option value="${k}"${state.status === k ? ' selected' : ''}>${l}</option>`).join('')}<option value="all"${state.status === 'all' ? ' selected' : ''}>All, including archived</option></select>
       </div>
       <div class="bulk" hidden><span id="selcount"></span>
@@ -397,41 +423,41 @@
         <button class="btn sm" id="bulkGo" type="button">Apply</button></div>
       <div id="list"></div>`;
 
+    const params = (forCsv) => {
+      const p = new URLSearchParams();
+      p.set('box', box);
+      if (state.type) p.set('type', state.type);
+      if (state.status === 'all') { if (!forCsv) p.set('all', '1'); } else if (state.status) p.set('status', state.status);
+      if (state.q) p.set('q', state.q);
+      return p;
+    };
     const go = () => {
       const p = new URLSearchParams();
+      p.set('box', box);
       if (state.type) p.set('type', state.type);
       if (state.status) p.set('status', state.status);
       if (state.q) p.set('q', state.q);
-      history.replaceState(null, '', '#/inbox' + (p.toString() ? '?' + p : ''));
+      history.replaceState(null, '', '#/inbox?' + p);
       load();
     };
     $$('[data-type]', main).forEach((b) => b.addEventListener('click', () => { state.type = b.dataset.type; $$('[data-type]', main).forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); }); go(); }));
     $('#status').addEventListener('change', (e) => { state.status = e.target.value; go(); });
     let tmr;
     $('#q').addEventListener('input', (e) => { clearTimeout(tmr); tmr = setTimeout(() => { state.q = e.target.value.trim(); go(); }, 250); });
-    $('#csv').addEventListener('click', (e) => {
-      e.preventDefault();
-      const p = new URLSearchParams();
-      if (state.type) p.set('type', state.type);
-      if (state.status && state.status !== 'all') p.set('status', state.status);
-      if (state.q) p.set('q', state.q);
-      location.href = '/admin/api/submissions.csv?' + p;
-    });
+    $('#csv').addEventListener('click', (e) => { e.preventDefault(); location.href = '/admin/api/submissions.csv?' + params(true); });
 
     async function load() {
-      const p = new URLSearchParams();
-      if (state.type) p.set('type', state.type);
-      if (state.status === 'all') p.set('all', '1'); else if (state.status) p.set('status', state.status);
-      if (state.q) p.set('q', state.q);
-      const rows = await api('/submissions?' + p);
+      const rows = await api('/submissions?' + params(false));
       const list = $('#list');
-      if (!rows.length) { list.innerHTML = '<div class="empty">No messages match these filters.</div>'; updateBulk(); return; }
+      if (!rows.length) { list.innerHTML = '<div class="empty">Nothing matches these filters.</div>'; updateBulk(); return; }
+      const who = box === 'vendors' || box === 'investors';
       list.innerHTML = `<div class="table-wrap"><table><thead><tr>
-        <th><input type="checkbox" id="all" aria-label="Select all"></th><th>Received</th><th>Form</th><th>Name</th><th>Email</th><th>Subject</th><th>Status</th></tr></thead><tbody>
+        <th><input type="checkbox" id="all" aria-label="Select all"></th><th>Reference</th><th>Received</th>${B.types.length > 1 ? '<th>Form</th>' : ''}<th>${who ? 'Company / organisation' : 'Name'}</th><th>${who ? 'Contact' : 'Email'}</th><th>Subject</th><th>Status</th></tr></thead><tbody>
         ${rows.map((r) => `<tr class="${r.status === 'new' ? 'unread' : ''}" data-go="#/message/${r.id}">
-          <td><input type="checkbox" class="sel" value="${r.id}" aria-label="Select message from ${esc(r.name)}"></td>
-          <td class="nowrap">${fmtDate(r.created_at)}</td><td><span class="pill type">${TYPES[r.type] || r.type}</span></td>
-          <td>${esc(r.name)}</td><td>${esc(r.email)}</td><td class="clip">${esc(r.subject || r.message)}</td>
+          <td><input type="checkbox" class="sel" value="${r.id}" aria-label="Select ${esc(r.ref || r.name)}"></td>
+          <td class="nowrap">${esc(r.ref || '')}</td>
+          <td class="nowrap">${fmtDate(r.created_at)}</td>${B.types.length > 1 ? `<td><span class="pill type">${TYPES[r.type] || r.type}</span></td>` : ''}
+          <td>${esc(who ? r.organisation || r.name : r.name)}</td><td>${who ? `${esc(r.name)}<br><span class="muted">${esc(r.email)}</span>` : esc(r.email)}</td><td class="clip">${esc(r.subject || r.message)}</td>
           <td><span class="pill ${r.status}">${STATUSES[r.status]}</span></td></tr>`).join('')}
         </tbody></table></div>`;
       bindRowLinks(list);
@@ -449,7 +475,7 @@
       const ids = updateBulk();
       const action = $('#bulkAction').value;
       if (!action) return toast('Choose an action first.', true);
-      if (action === 'delete' && !confirm(`Delete ${ids.length} message(s) permanently? Attached CVs are deleted too.`)) return;
+      if (action === 'delete' && !confirm(`Delete ${ids.length} item(s) permanently? Attached files are deleted too.`)) return;
       await api('/submissions/bulk', { method: 'POST', body: { ids, action } });
       toast('Updated');
       render();
@@ -457,34 +483,58 @@
     await load();
   }
 
+  const COLLAB = { supplier: 'Supplier', contractor: 'Contractor', consultant: 'Consultant', service: 'Service provider', partner: 'Potential partner', other: 'Other' };
+  const KIND = { company: 'Company', individual: 'Individual' };
+  const kb = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+
   async function message(main, id) {
     const m = await api('/submissions/' + id);
+    curBox = boxOf(m.type);
+    $$('.side nav a').forEach((a) => a.classList.toggle('on', a.getAttribute('href') === `#/inbox?box=${curBox}`));
     if (m.status === 'new') { await api('/submissions/' + id, { method: 'PATCH', body: { status: 'in_progress' } }); m.status = 'in_progress'; }
     const d = m.data || {};
+    const link = (u) => (/^https?:\/\//i.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a>` : esc(u));
+    const vendor = m.type === 'vendor';
     const rows = [
-      ['Form', TYPES[m.type] || m.type], ['Received', fmtDate(m.created_at)], ['Name', m.name],
-      ['Email', m.email ? `<a href="mailto:${esc(m.email)}">${esc(m.email)}</a>` : '', true],
-      ['Phone', m.phone], ['Organisation', m.organisation], ['Country', m.country],
-      [m.type === 'career' ? 'Position' : m.type === 'project' ? 'Development' : 'Subject', m.subject],
-      ['Sector', d.sector], ['Investment range', d.investment_range], ['Preferred language', d.preferred_language],
+      ['Reference', m.ref], ['Form', TYPES[m.type] || m.type], ['Received', fmtDate(m.created_at)],
+      ...(vendor ? [
+        ['Collaboration type', COLLAB[d.collab_type] || d.collab_type], ['Applicant type', KIND[d.applicant_kind] || d.applicant_kind],
+        ['Legal name', m.organisation], ['Registration number', d.reg_no], ['Country', m.country], ['Address', d.address],
+        ['Website', d.website ? link(d.website) : '', true],
+        ['Contact person', m.name], ['Job title', d.job_title],
+        ['Email', m.email], ['Phone', m.phone],
+        ['Geographical coverage', d.coverage], ['Associations / affiliations', d.affiliations], ['Software and tools', d.software],
+        ['Declarations', d.declarations ? 'Accepted: accurate information, authority to represent, no legal impediments, privacy notice' : ''],
+      ] : [
+        ['Name', m.name], ['Email', m.email],
+        ['Phone', m.phone], ['Organisation', m.organisation], ['Country', m.country],
+        [m.type === 'career' ? 'Position' : m.type === 'project' ? 'Development' : 'Subject', m.subject],
+        ['Sector', d.sector], ['Investment range', d.investment_range], ['Preferred language', LANG_LABEL[d.preferred_language] || d.preferred_language],
+      ]),
       ['Website language', LANG_LABEL[m.lang] || m.lang],
     ].filter((r) => r[1]);
-    const replySubject = encodeURIComponent(`Re: ${m.subject || 'Your message to ENMAA'}`);
-    main.innerHTML = `<div class="top"><h1>${esc(m.name || 'Message')}</h1><div class="actions">
-        <a class="btn ghost" href="#/inbox">← Back to messages</a>
-        ${m.email ? `<a class="btn" href="mailto:${esc(m.email)}?subject=${replySubject}" id="reply">Reply by email</a>` : ''}
+    // long answers of the vendor form, shown as blocks
+    const blocks = vendor ? [
+      ['Business activities, services or products', d.activities], ['Experience summary and previous projects', d.experience],
+      ['Standards, certifications and awards', d.certifications], ['Proposed collaboration', d.collaboration],
+    ].filter((b) => b[1]) : [];
+    const files = m.files || [];
+    main.innerHTML = `<div class="top"><h1>${esc((vendor ? m.organisation : '') || m.name || 'Message')}</h1><div class="actions">
+        <a class="btn ghost" href="#/inbox?box=${curBox}">← Back to ${esc(BOXES[curBox].label.toLowerCase())}</a>
       </div></div>
       <div class="detail">
         <div class="card">
           <dl class="kv">${rows.map(([k, v, raw]) => `<dt>${k}</dt><dd>${raw ? v : esc(v)}</dd>`).join('')}</dl>
+          ${blocks.map(([k, v]) => `<h3 class="blk-h">${k}</h3><div class="msg">${esc(v)}</div>`).join('')}
           ${m.message ? `<div class="msg">${esc(m.message)}</div>` : ''}
           ${m.file_path ? `<p style="margin-top:16px"><a class="btn ghost" href="/admin/api/submissions/${m.id}/file">Download CV — ${esc(m.file_name)}</a></p>` : ''}
+          ${files.length ? `<h3 class="blk-h">Attachments</h3><ul class="files">${files.map((f, i) => `<li><a class="btn ghost sm" href="/admin/api/submissions/${m.id}/files/${i}">${icon('download')} ${esc(f.name)}</a> <span class="muted">${esc(f.label)} · ${kb(f.size)}</span></li>`).join('')}</ul>` : vendor ? '<p class="muted" style="margin-top:16px">No attachments.</p>' : ''}
         </div>
         <div>
           <div class="card"><h2>Status</h2><div class="status-btns">${Object.entries(STATUSES).map(([k, l]) => `<button type="button" data-status="${k}" class="${m.status === k ? 'on' : ''}" aria-pressed="${m.status === k}">${l}</button>`).join('')}</div></div>
           <div class="card"><h2>Internal notes</h2><textarea id="notes" rows="6" aria-label="Internal notes">${esc(m.notes)}</textarea>
             <div class="row" style="margin-top:10px"><button class="btn sm" id="saveNotes" type="button">Save notes</button></div></div>
-          <div class="card"><h2>Delete</h2><p class="muted">Removes this message${m.file_path ? ' and the attached CV' : ''} permanently.</p><button class="btn danger sm" id="del" type="button">Delete message</button></div>
+          <div class="card"><h2>Delete</h2><p class="muted">Removes this item${m.file_path || files.length ? ' and its attached files' : ''} permanently.</p><button class="btn danger sm" id="del" type="button">Delete</button></div>
         </div>
       </div>`;
     $$('[data-status]', main).forEach((b) => b.addEventListener('click', async () => {
@@ -492,13 +542,12 @@
       $$('[data-status]', main).forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
       toast('Status: ' + STATUSES[b.dataset.status]);
     }));
-    $('#reply')?.addEventListener('click', () => { if (m.status !== 'replied') api('/submissions/' + id, { method: 'PATCH', body: { status: 'replied' } }).then(() => { $$('[data-status]', main).forEach((x) => x.classList.toggle('on', x.dataset.status === 'replied')); }); });
     $('#saveNotes').addEventListener('click', async () => { await api('/submissions/' + id, { method: 'PATCH', body: { notes: $('#notes').value } }); toast('Notes saved'); });
     $('#del').addEventListener('click', async () => {
-      if (!confirm('Delete this message permanently?')) return;
+      if (!confirm('Delete this item permanently?')) return;
       await api('/submissions/' + id, { method: 'DELETE' });
-      toast('Message deleted');
-      location.hash = '#/inbox';
+      toast('Deleted');
+      location.hash = `#/inbox?box=${curBox}`;
     });
   }
 
@@ -987,9 +1036,11 @@
         ${f('contact_email', 'Email', 'email')}${f('contact_phone', 'Phone')}${LANGS.map(([l, name]) => f('contact_address_' + l, `Address (${name})`, 'text', l === 'ar')).join('')}</div></div>
       <div class="card"><h2>Social links</h2><div class="grid g2">${f('social_linkedin', 'LinkedIn URL', 'url')}${f('social_instagram', 'Instagram URL', 'url')}${f('social_x', 'X URL', 'url')}${f('social_facebook', 'Facebook URL', 'url')}</div></div>
       <div class="card"><h2>Forms & links</h2>
-        ${f('vendor_form_url', 'Vendor Pre-Qualification form URL (Tendering)', 'url')}
         ${f('hr_reference_url', 'HR reference form URL', 'url')}
-        ${f('investment_ranges', 'Investment ranges for the Register Interest form (one per line)', 'textarea')}</div>
+      </div>
+      <div class="card"><h2>Investment ranges (Investors page form)</h2>
+        <p class="muted">One range per line. Keep the same number of lines, in the same order, in every language. A language with a different number of lines shows the English list.</p>
+        ${langTabs((l) => f(l === 'en' ? 'investment_ranges' : `investment_ranges_${l}`, `Investment ranges — ${LANG_LABEL[l]}`, 'textarea', l === 'ar'), 'Requests are saved with the English wording.')}</div>
       <div class="card"><h2>Legal pages</h2><p class="muted">Paste the texts from Legal. A blank line starts a new paragraph.</p>
         ${langTabs((l) => [['privacy', 'Privacy Policy'], ['terms', 'Terms of Use'], ['accessibility', 'Accessibility']].map(([k, n]) => f(`legal_${k}_${l}`, `${n} — ${LANG_LABEL[l]}`, 'textarea', l === 'ar')).join(''))}</div>
       <div class="savebar"><button class="btn" type="submit">Save settings</button><span class="err" role="alert"></span></div>
@@ -1003,40 +1054,108 @@
   }
 
   // ---------- account ----------
+  // Everyone can change their own password. A super account also creates users and ticks what each one can open.
   async function account(main) {
-    const admins = await api('/admins');
-    main.innerHTML = `<div class="top"><h1>Users & password</h1></div>
-      <div class="grid g2">
-        <form class="card" id="pw"><h2>Change your password</h2>
+    const pwCard = `<form class="card" id="pw"><h2>Change your password</h2>
           <label class="f"><span>Current password</span><input type="password" name="current" autocomplete="current-password" required></label>
           <label class="f"><span>New password (min. 10 characters)</span><input type="password" name="next" autocomplete="new-password" minlength="10" required></label>
-          <button class="btn" type="submit">Update password</button><p class="err" role="alert"></p></form>
-        <div class="card"><h2>Dashboard users</h2>
-          <table><tbody>${admins.map((a) => `<tr style="cursor:default"><td><b>${esc(a.username)}</b>${a.username === me.username ? ' <span class="muted">(you)</span>' : ''}</td><td class="muted">${fmtDate(a.created_at)}</td>
-            <td>${a.username === me.username ? '' : `<button class="btn danger sm" data-deluser="${a.id}" type="button">Remove</button>`}</td></tr>`).join('')}</tbody></table>
-          <form id="nu" style="margin-top:18px"><h2>Add a user</h2>
-            <label class="f"><span>Username</span><input type="text" name="username" autocomplete="off" required></label>
-            <label class="f"><span>Password (min. 10 characters)</span><input type="password" name="password" autocomplete="new-password" minlength="10" required></label>
-            <button class="btn" type="submit">Add user</button><p class="err" role="alert"></p></form>
-        </div>
-      </div>`;
-    $('#pw').addEventListener('submit', async (e) => {
+          <button class="btn" type="submit">Update password</button><p class="err" role="alert"></p></form>`;
+    const bindPw = () => $('#pw').addEventListener('submit', async (e) => {
       e.preventDefault();
       const f = new FormData(e.target);
       try { await api('/password', { method: 'POST', body: { current: f.get('current'), next: f.get('next') } }); e.target.reset(); toast('Password updated'); }
       catch (err) { $('.err', e.target).textContent = err.message; }
     });
-    $('#nu').addEventListener('submit', async (e) => {
+
+    if (!me.isSuper) {
+      const LABELS = { content: 'Website content', settings: 'Settings', visitors: 'Visitor statistics', messages: 'Messages', careers: 'Job applications', vendors: 'Vendor registrations', investors: 'Investor requests' };
+      main.innerHTML = `<div class="top"><h1>My password</h1></div>
+        <div class="grid g2">${pwCard}
+          <div class="card"><h2>Your access</h2><p class="muted">Signed in as <b>${esc(me.username)}</b>. You can open:</p>
+            <ul class="access-list">${me.perms.map((p) => `<li>${LABELS[p] || p}</li>`).join('')}</ul>
+            <p class="muted">Need more? Ask a super account to change your access.</p></div>
+        </div>`;
+      bindPw();
+      return;
+    }
+
+    const { users, perms } = await api('/admins');
+    const SHORT = { content: 'Content', settings: 'Settings', visitors: 'Visitors', messages: 'Messages', careers: 'Job applications', vendors: 'Vendors', investors: 'Investors' };
+    const access = (u) => (u.role === 'super' ? '<span class="pill on">Super account</span>' : u.perms.map((p) => `<span class="pill type">${SHORT[p] || p}</span>`).join(' '));
+    main.innerHTML = `<div class="top"><h1>Users & password</h1><div class="actions"><button class="btn" type="button" id="addUser">${icon('plus')} Add user</button></div></div>
+      <div class="card"><h2>Dashboard users</h2>
+        <div class="table-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Can open</th><th>Added</th><th></th></tr></thead><tbody>
+        ${users.map((u) => `<tr style="cursor:default"><td><b>${esc(u.full_name || '—')}</b></td><td>${esc(u.username)}${u.id === me.id || u.username === me.username ? ' <span class="muted">(you)</span>' : ''}</td>
+          <td class="access">${access(u)}</td><td class="muted nowrap">${fmtDate(u.created_at)}</td>
+          <td class="nowrap"><button class="btn ghost sm" data-edituser="${u.id}" type="button">Edit</button>
+            ${u.username === me.username ? '' : `<button class="btn danger sm" data-deluser="${u.id}" type="button">Remove</button>`}</td></tr>`).join('')}
+        </tbody></table></div>
+      </div>
+      <div class="grid g2" style="margin-top:20px">
+        <form class="card" id="uform" hidden>
+          <h2 id="uformTitle">Add a user</h2>
+          <label class="f"><span>Full name</span><input type="text" name="full_name" autocomplete="off" placeholder="e.g. Marketing team"></label>
+          <label class="f" id="unameRow"><span>Username (used to sign in)</span><input type="text" name="username" autocomplete="off"></label>
+          <label class="f"><span id="upassLbl">Password (min. 10 characters)</span><input type="password" name="password" autocomplete="new-password" minlength="10"></label>
+          <fieldset class="perm-box">
+            <legend>What can this user open?</legend>
+            <label class="perm perm--super"><input type="checkbox" name="super"> <span><b>Super account</b><small>Full access to everything, and can add, edit and remove users.</small></span></label>
+            <div class="perm-list">${Object.entries(perms).map(([k, label]) => `<label class="perm"><input type="checkbox" name="perm" value="${k}"> <span>${esc(label)}</span></label>`).join('')}</div>
+          </fieldset>
+          <div class="row"><button class="btn" type="submit" id="usave">Add user</button><button class="btn ghost" type="button" id="ucancel">Cancel</button></div>
+          <p class="err" role="alert"></p>
+        </form>
+        ${pwCard}
+      </div>`;
+    bindPw();
+
+    const form = $('#uform');
+    let editing = null;
+    const syncSuper = () => {
+      const sup = form.elements.super.checked;
+      $$('[name=perm]', form).forEach((c) => { c.disabled = sup; if (sup) c.checked = true; });
+    };
+    form.elements.super.addEventListener('change', () => { if (!form.elements.super.checked) $$('[name=perm]', form).forEach((c) => (c.checked = false)); syncSuper(); });
+    const open = (u) => {
+      editing = u || null;
+      form.reset();
+      $('.err', form).textContent = '';
+      $('#uformTitle').textContent = u ? `Edit ${u.full_name || u.username}` : 'Add a user';
+      $('#usave').textContent = u ? 'Save changes' : 'Add user';
+      $('#unameRow').hidden = !!u;
+      $('#upassLbl').textContent = u ? 'New password (leave empty to keep the current one)' : 'Password (min. 10 characters)';
+      if (u) {
+        form.elements.full_name.value = u.full_name || '';
+        form.elements.super.checked = u.role === 'super';
+        $$('[name=perm]', form).forEach((c) => (c.checked = u.perms.includes(c.value)));
+      }
+      syncSuper();
+      form.hidden = false;
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      (u ? form.elements.full_name : form.elements.full_name).focus({ preventScroll: true });
+    };
+    $('#addUser').addEventListener('click', () => open(null));
+    $('#ucancel').addEventListener('click', () => { form.hidden = true; editing = null; });
+    $$('[data-edituser]', main).forEach((b) => b.addEventListener('click', () => open(users.find((u) => String(u.id) === b.dataset.edituser))));
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const f = new FormData(e.target);
-      try { await api('/admins', { method: 'POST', body: { username: f.get('username'), password: f.get('password') } }); toast('User added'); render(); }
-      catch (err) { $('.err', e.target).textContent = err.message; }
+      const f = form.elements;
+      const body = {
+        full_name: f.full_name.value.trim(),
+        role: f.super.checked ? 'super' : 'user',
+        perms: $$('[name=perm]:checked', form).map((c) => c.value),
+        password: f.password.value,
+      };
+      try {
+        if (editing) await api('/admins/' + editing.id, { method: 'PUT', body });
+        else await api('/admins', { method: 'POST', body: { ...body, username: f.username.value.trim() } });
+        toast(editing ? 'User updated' : 'User added');
+        render();
+      } catch (err) { $('.err', form).textContent = err.message; }
     });
     $$('[data-deluser]', main).forEach((b) => b.addEventListener('click', async () => {
       if (!confirm('Remove this user from the dashboard?')) return;
-      await api('/admins/' + b.dataset.deluser, { method: 'DELETE' });
-      toast('User removed');
-      render();
+      try { await api('/admins/' + b.dataset.deluser, { method: 'DELETE' }); toast('User removed'); render(); } catch (err) { toast(err.message, true); }
     }));
   }
 

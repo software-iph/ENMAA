@@ -441,7 +441,8 @@ function careers(ctx, { vacancies, photos }) {
 // ---------------- VENDORS ----------------
 function vendors(ctx, { disciplines, documents }) {
   const { t, settings } = ctx;
-  const formBtn = (cls) => `<a class="btn ${cls}" href="${esc(settings.vendor_form_url)}" target="_blank" rel="noopener">${esc(t('vendor_form_btn'))} <span aria-hidden="true">↗</span></a>`;
+  const formBtn = (cls) => `<a class="btn ${cls}" href="#register">${esc(t('vendor_form_btn'))}</a>`;
+  const steps = [1, 2, 3, 4, 5, 6];
   const body = `
   ${pageHero(ctx, { eyebrow: t('vendors_eyebrow'), title: t('vendors_title'), text: t('vendors_text'), image: settings.img_hero_vendors, actions: formBtn('btn-light') })}
   <section class="chapter">
@@ -460,11 +461,16 @@ function vendors(ctx, { disciplines, documents }) {
     <div class="wrap split-intro">
       <div>${sectionHeader(t('register_label'), t('register_title'), { light: true })}</div>
       <div>
-        <p class="lead">${esc(t('vendors_text'))}</p>
-        <ol class="steps" data-stagger>${[1, 2, 3].map((i) => `<li><span class="dot">${i}</span><p>${esc(t(`step_${i}`))}</p></li>`).join('')}</ol>
-        <p class="muted-light">${esc(t('register_text'))}</p>
+        <ol class="steps steps--titled" data-stagger>${steps.map((i) => `<li><span class="dot">${i}</span><p><b>${esc(t(`step_${i}_title`))}</b>${esc(t(`step_${i}`))}</p></li>`).join('')}</ol>
+        <p class="vendor-notice">${esc(t('register_text'))}</p>
         ${formBtn('btn-light')}
       </div>
+    </div>
+  </section>
+  <section class="chapter" id="register">
+    <div class="wrap split-form">
+      <div>${sectionHeader(t('vendor_form_btn'), t('vf_title'))}<p class="lead">${esc(t('vf_lead'))}</p><p class="muted">${esc(t('register_text'))}</p></div>
+      ${forms.vendorForm(ctx)}
     </div>
   </section>`;
   return layout({ ...ctx, active: 'vendors', title: t('nav_vendors') }, body);

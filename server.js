@@ -175,6 +175,25 @@ const cvUpload = multer({
   },
 });
 
+// Vendor registration attachments: private folder, only downloadable from the dashboard.
+const DOCS = path.join(UPLOADS, 'docs');
+fs.mkdirSync(DOCS, { recursive: true });
+fs.mkdirSync(path.join(UPLOADS, 'cv'), { recursive: true });
+const DOC_EXT = ['.pdf', '.docx', '.jpg', '.jpeg', '.png'];
+const DOC_MAX_FILES = 5;
+const docUpload = multer({
+  storage: multer.diskStorage({
+    destination: DOCS,
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${path.extname(file.originalname).toLowerCase()}`),
+  }),
+  limits: { fileSize: 10 * 1024 * 1024, files: DOC_MAX_FILES, fields: 60 },
+  fileFilter: (req, file, cb) => {
+    const ok = DOC_EXT.includes(path.extname(file.originalname).toLowerCase());
+    cb(ok ? null : Object.assign(new Error('file'), { code: 'BAD_FILE' }), ok);
+  },
+});
+const VENDOR_FILES = [{ name: 'company_profile', maxCount: 1 }, { name: 'documents', maxCount: DOC_MAX_FILES }];
+
 // Simple in-memory rate limit: 8 submissions per IP per 10 minutes.
 const hits = new Map();
 function rateLimited(ip) {
@@ -189,10 +208,18 @@ const FORM_TYPES = {
   contact: { required: ['name', 'email', 'subject', 'message'] },
   project: { required: ['name', 'email', 'country', 'message'] },
   investor: { required: ['name', 'organisation', 'email', 'country', 'sector', 'investment_range', 'preferred_language'] },
+  vendor: {
+    required: ['collab_type', 'applicant_kind', 'organisation', 'country', 'address', 'name', 'job_title', 'email', 'phone', 'activities', 'experience', 'collaboration'],
+    checks: ['decl_accurate', 'decl_authority', 'decl_legal'],
+  },
   career: { required: ['first_name', 'last_name', 'email', 'position'], file: true },
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const clip = (s, n = 4000) => String(s ?? '').trim().slice(0, n);
+const COLLAB_TYPES = ['supplier', 'contractor', 'consultant', 'service', 'partner', 'other'];
+const REF_PREFIX = { contact: 'CON', project: 'PRJ', career: 'CAR', investor: 'INV', vendor: 'VEN' };
+// Every uploaded file of this request (CV or vendor attachments)
+const uploadedFiles = (req) => (req.file ? [req.file] : Object.values(req.files || {}).flat());
 
 async function handleForm(req, res) {
   const type = req.params.type;
@@ -201,12 +228,12 @@ async function handleForm(req, res) {
   const lang = LANGS.includes(body.lang) ? body.lang : 'en';
   const t = translator(lang);
   const wantsJson = (req.headers.accept || '').includes('application/json');
-  const removeFile = () => { if (req.file) fs.unlink(req.file.path, () => {}); };
+  const removeFile = () => { for (const f of uploadedFiles(req)) fs.unlink(f.path, () => {}); };
 
   const reply = (status, payload) => {
     if (wantsJson) return res.status(status).json(payload);
     const back = String(body.return_to || `/${lang}/`).startsWith('/') && !String(body.return_to).startsWith('//') ? body.return_to : `/${lang}/`;
-    return res.redirect(303, `${back}?sent=${payload.ok ? '1' : '0'}`);
+    return res.redirect(303, `${back}?sent=${payload.ok ? '1' : '0'}${payload.ref ? `&ref=${payload.ref}` : ''}`);
   };
 
   if (!spec) return res.status(404).json({ ok: false });
@@ -219,6 +246,13 @@ async function handleForm(req, res) {
   if (body.email && !EMAIL_RE.test(clip(body.email))) errors.email = t('err_email');
   if (body.consent !== 'yes') errors.consent = t('err_consent');
   if (spec.file && !req.file) errors.cv = t('err_file');
+  for (const k of spec.checks || []) if (body[k] !== 'yes') errors[k] = t('err_consent');
+  if (type === 'vendor') {
+    if (body.collab_type && !COLLAB_TYPES.includes(body.collab_type)) errors.collab_type = t('err_required');
+    if (body.applicant_kind && !['company', 'individual'].includes(body.applicant_kind)) errors.applicant_kind = t('err_required');
+    if (body.applicant_kind === 'company' && !clip(body.reg_no)) errors.reg_no = t('err_required');
+    if (uploadedFiles(req).length > DOC_MAX_FILES) errors.documents = t('err_files');
+  }
   if (Object.keys(errors).length) { removeFile(); return reply(422, { ok: false, message: t('form_error'), errors }); }
 
   let name = clip(body.name, 200);
@@ -240,6 +274,18 @@ async function handleForm(req, res) {
     subject = p ? pick(p.t, 'en', 'name') : clip(body.project, 200);
     data.project = p ? p.slug : null;
   }
+  if (type === 'vendor') {
+    Object.assign(data, {
+      collab_type: clip(body.collab_type, 30), applicant_kind: clip(body.applicant_kind, 20), reg_no: clip(body.reg_no, 100),
+      address: clip(body.address, 500), website: clip(body.company_website, 300), job_title: clip(body.job_title, 150),
+      activities: clip(body.activities, 3000), coverage: clip(body.coverage, 500), experience: clip(body.experience, 4000),
+      affiliations: clip(body.affiliations, 1000), software: clip(body.software, 1000), certifications: clip(body.certifications, 2000),
+      collaboration: clip(body.collaboration, 4000),
+      declarations: 'accurate, authorised, no legal impediments, privacy notice',
+    });
+    const typeName = translator('en')(`ct_${data.collab_type}`);
+    subject = `${typeName} · ${clip(body.organisation, 200)}`;
+  }
   if (type === 'investor') {
     data.sector = clip(body.sector, 50);
     data.investment_range = clip(body.investment_range, 100);
@@ -247,21 +293,33 @@ async function handleForm(req, res) {
     subject = `${data.sector} · ${data.investment_range}`;
   }
 
-  await run(`INSERT INTO submissions (type, lang, name, email, organisation, country, phone, subject, message, data, file_path, file_name, ip)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, [
+  const files = type === 'vendor' ? [
+    ...(req.files?.company_profile || []).map((f) => ({ file: path.basename(f.path), name: clip(f.originalname, 200), size: f.size, label: 'Company profile' })),
+    ...(req.files?.documents || []).map((f) => ({ file: path.basename(f.path), name: clip(f.originalname, 200), size: f.size, label: 'Supporting document' })),
+  ] : [];
+  const row = await one(`INSERT INTO submissions (type, lang, name, email, organisation, country, phone, subject, message, data, file_path, file_name, files, ip)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id, created_at`, [
     type, lang, name, clip(body.email, 200), clip(body.organisation, 200), clip(body.country, 100), clip(body.phone, 50), subject,
-    clip(body.message, 5000), JSON.stringify(data), req.file ? path.basename(req.file.path) : null, req.file ? clip(req.file.originalname, 200) : null, req.ip,
+    clip(body.message, 5000), JSON.stringify(data), req.file ? path.basename(req.file.path) : null, req.file ? clip(req.file.originalname, 200) : null,
+    JSON.stringify(files), req.ip,
   ]);
-  return reply(200, { ok: true, message: t(type === 'career' ? 'form_success_career' : 'form_success') });
+  // Reference number, e.g. VEN-2026-00042 (the row id keeps it unique)
+  const ref = `${REF_PREFIX[type]}-${new Date(row.created_at).getUTCFullYear()}-${String(row.id).padStart(5, '0')}`;
+  await run('UPDATE submissions SET ref = $1 WHERE id = $2', [ref, row.id]);
+  const okKey = { career: 'form_success_career', vendor: 'form_success_vendor', investor: 'form_success_investor' }[type] || 'form_success';
+  return reply(200, { ok: true, ref, message: t(okKey, { ref }) });
 }
 
 app.post('/api/forms/:type', (req, res, next) => {
-  if (req.params.type === 'career') {
-    return cvUpload.single('cv')(req, res, (err) => {
+  const upload = { career: cvUpload.single('cv'), vendor: docUpload.fields(VENDOR_FILES) }[req.params.type];
+  if (upload) {
+    return upload(req, res, (err) => {
       if (err) {
+        for (const f of uploadedFiles(req)) fs.unlink(f.path, () => {});
         const lang = LANGS.includes(req.body?.lang) ? req.body.lang : 'en';
         const t = translator(lang);
-        return res.status(422).json({ ok: false, message: t('form_error'), errors: { cv: t('err_file') } });
+        const errors = req.params.type === 'career' ? { cv: t('err_file') } : { documents: t('err_files') };
+        return res.status(422).json({ ok: false, message: t('form_error'), errors });
       }
       handleForm(req, res).catch(next);
     });

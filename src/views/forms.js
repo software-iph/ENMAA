@@ -3,10 +3,16 @@ const { esc } = require('./layout');
 const COUNTRIES_EN = ['Libya', 'Algeria', 'Egypt', 'Tunisia', 'Morocco', 'Saudi Arabia', 'United Arab Emirates', 'Qatar', 'Kuwait', 'Bahrain', 'Oman', 'Jordan', 'Turkey', 'Italy', 'China', 'United Kingdom', 'France', 'Germany', 'United States', 'Other'];
 
 let uid = 0;
-function field(t, { name, label, type = 'text', required = true, options, value, autocomplete, full, hint, rows = 5, attrs = '' }) {
+function field(t, { name, label, type = 'text', required = true, options, value, autocomplete, full, hint, rows = 5, attrs = '', reqIf, accept, multiple, chooseLabel }) {
   const id = `f-${name}-${++uid}`;
   const req = required ? ' required aria-required="true"' : '';
-  const lbl = `<label for="${id}">${esc(label)}${required ? ' <span aria-hidden="true">*</span>' : ` <span class="opt">(${esc(t('optional'))})</span>`}</label>`;
+  // reqIf: "applicant_kind=company" makes the field required only when that other field has that value
+  const mark = required ? ' <span aria-hidden="true">*</span>' : reqIf ? ' <span class="req-if" aria-hidden="true" hidden>*</span>' : ` <span class="opt">(${esc(t('optional'))})</span>`;
+  const lbl = `<label for="${id}">${esc(label)}${mark}</label>`;
+  if (reqIf) attrs += ` data-req-if="${esc(reqIf)}"`;
+  if (type === 'check') {
+    return `<div class="field field--full decl"><label class="check"><input id="${id}" type="checkbox" name="${name}" value="yes"${req}> <span>${esc(label)}</span></label><p class="field-error" aria-live="polite"></p></div>`;
+  }
   let control;
   if (type === 'select') {
     control = `<select id="${id}" name="${name}"${req} ${attrs}><option value="">${esc(t('choose'))}</option>${options.map((o) => {
@@ -16,7 +22,8 @@ function field(t, { name, label, type = 'text', required = true, options, value,
   } else if (type === 'textarea') {
     control = `<textarea id="${id}" name="${name}" rows="${rows}"${req} ${attrs}>${esc(value)}</textarea>`;
   } else if (type === 'file') {
-    control = `<div class="file-field"><input id="${id}" type="file" name="${name}"${req} accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" ${attrs}><span class="file-ui" aria-hidden="true"><span class="file-btn">${esc(t('cv_drop'))}</span><span class="file-name"></span></span></div>`;
+    const acc = accept || '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    control = `<div class="file-field"><input id="${id}" type="file" name="${name}"${req} accept="${acc}"${multiple ? ' multiple' : ''} ${attrs}><span class="file-ui" aria-hidden="true"><span class="file-btn">${esc(chooseLabel || t('cv_drop'))}</span><span class="file-name"></span></span></div>`;
   } else {
     control = `<input id="${id}" type="${type}" name="${name}"${value ? ` value="${esc(value)}"` : ''}${autocomplete ? ` autocomplete="${autocomplete}"` : ''}${req} ${attrs}>`;
   }
@@ -80,7 +87,12 @@ const SECTORS = ['residential', 'commercial', 'hospitality', 'mixed'];
 
 function investorForm(ctx, sectors) {
   const { t, settings } = ctx;
-  const ranges = String(settings.investment_ranges || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  // Ranges are edited in Settings, one per line in each language. The English line is what gets saved,
+  // so the dashboard always shows the same wording whatever language the visitor used.
+  const lines = (v) => String(v || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  const enRanges = lines(settings.investment_ranges);
+  const local = lines(settings[`investment_ranges_${ctx.lang}`]);
+  const ranges = enRanges.map((en, i) => [en, (local.length === enRanges.length && local[i]) || en]);
   return formShell(ctx, {
     type: 'investor',
     inner: [
@@ -114,4 +126,52 @@ function careerForm(ctx, vacancies) {
   });
 }
 
-module.exports = { contactForm, projectEnquiryForm, investorForm, careerForm, SECTORS };
+// Vendor registration (replaces the old Microsoft Forms link). Saved in the dashboard with a reference number.
+const COLLAB_TYPES = ['supplier', 'contractor', 'consultant', 'service', 'partner', 'other'];
+const DOC_ACCEPT = '.pdf,.docx,.jpg,.jpeg,.png';
+function vendorForm(ctx) {
+  const { t, lang } = ctx;
+  const sec = (key) => `<h3 class="form-sec field--full">${esc(t(key))}</h3>`;
+  const fileOpts = { type: 'file', required: false, full: true, accept: DOC_ACCEPT, hint: t('files_hint'), chooseLabel: t('files_choose'), attrs: 'data-doc' };
+  return formShell(ctx, {
+    type: 'vendor',
+    multipart: true,
+    submitLabel: t('vendor_submit'),
+    successKey: 'form_success_vendor',
+    extraHidden: `<p class="form-note">${esc(t('vf_text'))}</p>`,
+    inner: [
+      sec('vf_sec_type'),
+      field(t, { name: 'collab_type', label: t('collab_type'), type: 'select', options: COLLAB_TYPES.map((k) => [k, t(`ct_${k}`)]), hint: t('vf_investor_hint') }),
+      field(t, { name: 'applicant_kind', label: t('applicant_kind'), type: 'select', options: [['company', t('ak_company')], ['individual', t('ak_individual')]], value: 'company' }),
+      sec('vf_sec_applicant'),
+      field(t, { name: 'organisation', label: t('legal_name'), autocomplete: 'organization', full: true }),
+      field(t, { name: 'reg_no', label: t('reg_no'), required: false, reqIf: 'applicant_kind=company' }),
+      countrySelect(t),
+      field(t, { name: 'address', label: t('address'), autocomplete: 'street-address', full: true }),
+      field(t, { name: 'company_website', label: t('website'), type: 'url', required: false, autocomplete: 'url', full: true, attrs: 'placeholder="https://"' }),
+      sec('vf_sec_contact'),
+      field(t, { name: 'name', label: t('contact_name'), autocomplete: 'name' }),
+      field(t, { name: 'job_title', label: t('job_title'), autocomplete: 'organization-title' }),
+      field(t, { name: 'email', label: t('email'), type: 'email', autocomplete: 'email' }),
+      field(t, { name: 'phone', label: t('phone'), type: 'tel', autocomplete: 'tel' }),
+      sec('vf_sec_activities'),
+      field(t, { name: 'activities', label: t('activities'), type: 'textarea', full: true, rows: 4, hint: t('activities_hint') }),
+      field(t, { name: 'coverage', label: t('coverage'), required: false, full: true }),
+      field(t, { name: 'experience', label: t('experience'), type: 'textarea', full: true, rows: 4 }),
+      field(t, { name: 'affiliations', label: t('affiliations'), required: false }),
+      field(t, { name: 'software', label: t('software'), required: false }),
+      field(t, { name: 'certifications', label: t('certifications'), type: 'textarea', required: false, full: true, rows: 3 }),
+      sec('vf_sec_collab'),
+      field(t, { name: 'collaboration', label: t('collaboration'), type: 'textarea', full: true, rows: 4 }),
+      sec('vf_sec_files'),
+      field(t, { name: 'company_profile', label: t('file_profile'), ...fileOpts }),
+      field(t, { name: 'documents', label: t('file_docs'), multiple: true, ...fileOpts }),
+      sec('vf_sec_decl'),
+      field(t, { name: 'decl_accurate', label: t('decl_accurate'), type: 'check' }),
+      field(t, { name: 'decl_authority', label: t('decl_authority'), type: 'check' }),
+      field(t, { name: 'decl_legal', label: t('decl_legal'), type: 'check' }),
+    ].join(''),
+  });
+}
+
+module.exports = { contactForm, projectEnquiryForm, investorForm, careerForm, vendorForm, SECTORS };

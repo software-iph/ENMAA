@@ -8,6 +8,7 @@ data
 uploads/images/*
 uploads/files/*
 uploads/cv/*
+uploads/docs/*
 *.log
 *.dump
 Dockerfile

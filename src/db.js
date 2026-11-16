@@ -157,6 +157,11 @@ const DEFAULT_SETTINGS = {
   vendor_form_url: 'https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=7EwyoRHD-kCiA0mVchsnpr-NJDCJKwNFpWvP4f8mmtRUNjdLOUpTSzJRSTlURFFGSTI5NzJYVjNTTC4u',
   hr_reference_url: 'https://forms.gle/RkL6szsZDT5JKsZLA',
   investment_ranges: 'Under USD 1 million\nUSD 1–10 million\nUSD 10–50 million\nAbove USD 50 million',
+  // the same ranges in the other languages, line by line (a list with a different number of lines shows the English one)
+  investment_ranges_ar: 'أقل من مليون دولار أمريكي\nمن 1 إلى 10 ملايين دولار أمريكي\nمن 10 إلى 50 مليون دولار أمريكي\nأكثر من 50 مليون دولار أمريكي',
+  investment_ranges_it: 'Meno di 1 milione di USD\nDa 1 a 10 milioni di USD\nDa 10 a 50 milioni di USD\nOltre 50 milioni di USD',
+  investment_ranges_tr: '1 milyon USD altı\n1–10 milyon USD\n10–50 milyon USD\n50 milyon USD üzeri',
+  investment_ranges_zh: '100 万美元以下\n100 万–1000 万美元\n1000 万–5000 万美元\n5000 万美元以上',
   legal_privacy_en: 'The Privacy Policy will be published here once it is provided by ENMAA Legal.',
   legal_privacy_ar: 'ستُنشر سياسة الخصوصية هنا فور اعتمادها من الإدارة القانونية في إنماء.',
   legal_terms_en: 'The Terms of Use will be published here once they are provided by ENMAA Legal.',
@@ -253,7 +258,7 @@ async function ensureAdmin() {
   if (n > 0) return null;
   const username = process.env.ADMIN_USER || 'admin';
   const password = process.env.ADMIN_PASSWORD || crypto.randomBytes(9).toString('base64url');
-  await run('INSERT INTO admins (username, pass_hash) VALUES ($1, $2)', [username, hashPassword(password)]);
+  await run("INSERT INTO admins (username, pass_hash, role) VALUES ($1, $2, 'super')", [username, hashPassword(password)]);
   if (!process.env.ADMIN_PASSWORD) {
     const file = path.join(DATA_DIR, 'initial-admin.txt');
     fs.writeFileSync(file, `ENMAA dashboard — first login\nusername: ${username}\npassword: ${password}\n\nChange this password from the dashboard (Account), then delete this file.\n`);
@@ -456,8 +461,25 @@ async function listLanguagesV1() {
   await run("INSERT INTO settings (key, value) VALUES ('migration_list_langs_v1', '1') ON CONFLICT (key) DO NOTHING");
 }
 
+// Dashboard accounts: a super account manages users; other users only see the sections ticked for them.
+// Submissions get a reference number and can carry several attachments (vendor registrations).
+async function accountsAndRefsV1() {
+  await run(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';
+    ALTER TABLE admins ADD COLUMN IF NOT EXISTS perms JSONB NOT NULL DEFAULT '[]';
+    ALTER TABLE admins ADD COLUMN IF NOT EXISTS full_name TEXT NOT NULL DEFAULT '';
+    ALTER TABLE submissions ADD COLUMN IF NOT EXISTS ref TEXT;
+    ALTER TABLE submissions ADD COLUMN IF NOT EXISTS files JSONB NOT NULL DEFAULT '[]';
+    CREATE UNIQUE INDEX IF NOT EXISTS submissions_ref ON submissions (ref);`);
+  if (await one("SELECT value FROM settings WHERE key = 'migration_accounts_v1'")) return;
+  // every account that exists today becomes a super account
+  await run("UPDATE admins SET role = 'super'");
+  await run(`UPDATE submissions SET ref = upper(left(type, 3)) || '-' || to_char(created_at, 'YYYY') || '-' || lpad(id::text, 5, '0') WHERE ref IS NULL`);
+  await run("INSERT INTO settings (key, value) VALUES ('migration_accounts_v1', '1') ON CONFLICT (key) DO NOTHING");
+}
+
 async function init() {
   await pool.query(SCHEMA);
+  await accountsAndRefsV1();
   const { n } = await one('SELECT COUNT(*)::int AS n FROM projects');
   if (n === 0) {
     const sqliteFile = path.join(DATA_DIR, 'enmaa.db');

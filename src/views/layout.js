@@ -85,7 +85,7 @@ function footer(ctx) {
     <div><h3 class="f-title">${esc(t('footer_work'))}</h3><ul>
       <li><a href="/${lang}/careers">${esc(t('nav_careers'))}</a></li>
       <li><a href="/${lang}/vendors">${esc(t('nav_vendors'))}</a></li>
-      <li><a href="${esc(settings.vendor_form_url)}" target="_blank" rel="noopener">${esc(t('footer_vendor_reg'))} ↗</a></li></ul></div>
+      <li><a href="/${lang}/vendors#register">${esc(t('footer_vendor_reg'))}</a></li></ul></div>
     <div><h3 class="f-title">${esc(t('language'))}</h3><ul>
       ${LANGS.map((l) => `<li><a href="/${l}${ctx.path}" lang="${l}" hreflang="${l}">${LANG_FULL[l]}</a></li>`).join('')}</ul></div>
   </div>
@@ -145,7 +145,7 @@ ${nav(ctx)}
 ${body}
 </main>
 ${footer(ctx)}
-<script>window.ENMAA=${JSON.stringify({ lang, i18n: { sending: t('sending'), err_required: t('err_required'), err_email: t('err_email'), err_consent: t('err_consent'), err_file: t('err_file'), form_error: t('form_error'), no_match: t('no_match') } }).replace(/</g, '\\u003c')}</script>
+<script>window.ENMAA=${JSON.stringify({ lang, i18n: { sending: t('sending'), err_required: t('err_required'), err_email: t('err_email'), err_consent: t('err_consent'), err_file: t('err_file'), err_files: t('err_files'), form_error: t('form_error'), no_match: t('no_match') } }).replace(/</g, '\\u003c')}</script>
 <script src="/js/site.js?v=${V}" defer></script>
 </body>
 </html>`;
