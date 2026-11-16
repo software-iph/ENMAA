@@ -1039,16 +1039,45 @@
         ${f('hr_reference_url', 'HR reference form URL', 'url')}
       </div>
       <div class="card"><h2>Investment ranges (Investors page form)</h2>
-        <p class="muted">One range per line. Keep the same number of lines, in the same order, in every language. A language with a different number of lines shows the English list.</p>
-        ${langTabs((l) => f(l === 'en' ? 'investment_ranges' : `investment_ranges_${l}`, `Investment ranges — ${LANG_LABEL[l]}`, 'textarea', l === 'ar'), 'Requests are saved with the English wording.')}</div>
+        <p class="muted">The options of the “Investment range” list. Each row is one option, written in every language. An empty translation shows the English text. Requests are saved with the English wording.</p>
+        <div class="table-wrap"><table class="opt-table"><thead><tr><th>#</th>${LANGS.map(([, n]) => `<th>${n}</th>`).join('')}<th></th></tr></thead><tbody id="rangeRows"></tbody></table></div>
+        <button class="btn ghost sm" type="button" id="addRange">${icon('plus')} Add option</button></div>
       <div class="card"><h2>Legal pages</h2><p class="muted">Paste the texts from Legal. A blank line starts a new paragraph.</p>
         ${langTabs((l) => [['privacy', 'Privacy Policy'], ['terms', 'Terms of Use'], ['accessibility', 'Accessibility']].map(([k, n]) => f(`legal_${k}_${l}`, `${n} — ${LANG_LABEL[l]}`, 'textarea', l === 'ar')).join(''))}</div>
       <div class="savebar"><button class="btn" type="submit">Save settings</button><span class="err" role="alert"></span></div>
       </form>`;
+    // Investment ranges: stored as one line per option for each language; edited here as rows.
+    const rkey = (l) => (l === 'en' ? 'investment_ranges' : `investment_ranges_${l}`);
+    const lines = (v) => String(v || '').split('\n').map((x) => x.trim()).filter(Boolean);
+    const en = lines(s.investment_ranges);
+    const byLang = Object.fromEntries(LANGS.map(([l]) => { const ls = lines(s[rkey(l)]); return [l, ls.length === en.length ? ls : []]; }));
+    const tbody = $('#rangeRows');
+    const renumber = () => $$('tr', tbody).forEach((tr, i) => ($('.num', tr).textContent = i + 1));
+    const addRow = (vals = {}) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="muted num"></td>${LANGS.map(([l]) => `<td><input type="text" data-rl="${l}" value="${esc(vals[l] || '')}"${l === 'ar' ? ' dir="rtl" class="ar"' : ''}${l === 'en' ? ' placeholder="Required"' : ''}></td>`).join('')}
+        <td class="nowrap"><button class="btn ghost sm" type="button" data-mv="-1" title="Move up" aria-label="Move up">↑</button><button class="btn ghost sm" type="button" data-mv="1" title="Move down" aria-label="Move down">↓</button><button class="btn danger sm" type="button" data-rm title="Remove" aria-label="Remove">✕</button></td>`;
+      tbody.append(tr);
+      renumber();
+      return tr;
+    };
+    en.forEach((e, i) => addRow(Object.fromEntries(LANGS.map(([l]) => [l, l === 'en' ? e : byLang[l][i] || '']))));
+    $('#addRange').addEventListener('click', () => $('input', addRow()).focus());
+    tbody.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      const tr = b.closest('tr');
+      if (b.dataset.rm !== undefined) tr.remove();
+      else if (b.dataset.mv === '-1' && tr.previousElementSibling) tr.previousElementSibling.before(tr);
+      else if (b.dataset.mv === '1' && tr.nextElementSibling) tr.nextElementSibling.after(tr);
+      renumber();
+    });
     $('#ed').addEventListener('submit', async (e) => {
       e.preventDefault();
       const body = {};
       $$('[data-s]', main).forEach((el) => (body[el.dataset.s] = el.value.trim()));
+      const rows = $$('tr', tbody).map((tr) => Object.fromEntries($$('[data-rl]', tr).map((i) => [i.dataset.rl, i.value.trim()]))).filter((r) => r.en);
+      if (!rows.length) { $('.err', main).textContent = 'Add at least one investment range (English is required).'; return; }
+      for (const [l] of LANGS) body[rkey(l)] = rows.map((r) => r[l] || r.en).join('\n');
       try { await api('/settings', { method: 'PUT', body }); toast('Settings saved'); } catch (err) { $('.err', main).textContent = err.message; }
     });
   }

@@ -320,7 +320,7 @@ function init(DATA) {
       [[0, 38.6], ['L', 101.3, 38.6], ['L', 101.3, 60.4], ['L', 0, 60.4]],
       [[33, 73.6], ['L', 108, 73.6], ['C', 117, 73.7, 123.5, 76, 128, 80.5], ['L', 128, 98.4], ['C', 123, 96.2, 118, 95.1, 110, 95.1], ['L', 33, 95.1]],
     ];
-    const MS = 0.03; // model units per logo unit (about 3.9 wide, 3 tall)
+    const MS = 0.042; // model units per logo unit (about 5.4 wide, 4.2 tall)
     const mx = (x) => (x - 64.5) * MS;
     const my = (y) => (99 - y) * MS;
     const monument = new THREE.Group();
@@ -331,8 +331,8 @@ function init(DATA) {
         if (c === 'L') sh.lineTo(mx(v[0]), my(v[1]));
         else sh.bezierCurveTo(mx(v[0]), my(v[1]), mx(v[2]), my(v[3]), mx(v[4]), my(v[5]));
       });
-      const g = new THREE.ExtrudeGeometry(sh, { depth: 0.5, bevelEnabled: false, curveSegments: 18 });
-      g.translate(0, 0, -0.25);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: false, curveSegments: 18 });
+      g.translate(0, 0, -0.3);
       monument.add(shadowed(new THREE.Mesh(g, M.purple)));
     });
     monument.position.y = TOP + 0.3;

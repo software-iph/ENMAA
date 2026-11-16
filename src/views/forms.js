@@ -141,8 +141,9 @@ function vendorForm(ctx) {
     extraHidden: `<p class="form-note">${esc(t('vf_text'))}</p>`,
     inner: [
       sec('vf_sec_type'),
-      field(t, { name: 'collab_type', label: t('collab_type'), type: 'select', options: COLLAB_TYPES.map((k) => [k, t(`ct_${k}`)]), hint: t('vf_investor_hint') }),
+      field(t, { name: 'collab_type', label: t('collab_type'), type: 'select', options: COLLAB_TYPES.map((k) => [k, t(`ct_${k}`)]) }),
       field(t, { name: 'applicant_kind', label: t('applicant_kind'), type: 'select', options: [['company', t('ak_company')], ['individual', t('ak_individual')]], value: 'company' }),
+      `<p class="hint field--full">${esc(t('vf_investor_hint'))}</p>`, // under the row, so both boxes stay level
       sec('vf_sec_applicant'),
       field(t, { name: 'organisation', label: t('legal_name'), autocomplete: 'organization', full: true }),
       field(t, { name: 'reg_no', label: t('reg_no'), required: false, reqIf: 'applicant_kind=company' }),
