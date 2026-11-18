@@ -22,6 +22,7 @@ module.exports = {
   we_are_title: 'Un master developer che plasma il futuro della Libia, un quartiere, una destinazione e uno sviluppo alla volta.',
   we_are_text: 'Con ogni quartiere, destinazione e sviluppo, applichiamo una visione globale al potenziale locale, che rifletta la ricchezza del territorio e l’ambizione di ciò che verrà. Esistiamo per realizzare progresso su vasta scala e per presentare la Libia al mondo attraverso la qualità di ciò che creiamo.',
   about_more: 'Su ENMAA',
+  opens_new_tab: 'si apre in una nuova scheda',
   nav_about: 'Chi siamo', about_text: 'Un master developer libico che realizza progresso su vasta scala e presenta la Libia al mondo attraverso la qualità di ciò che creiamo.',
 
   label_developments: 'I nostri sviluppi', all_developments: 'Tutti gli sviluppi', view_project: 'Vedi lo sviluppo',

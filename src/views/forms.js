@@ -110,7 +110,8 @@ function investorForm(ctx, sectors) {
 
 function careerForm(ctx, vacancies) {
   const { t } = ctx;
-  const opts = vacancies.map((v) => [String(v.id), v.title]).concat([['general', t('general_application')]]);
+  // jobs that use an external application link are applied for on that page, not here
+  const opts = vacancies.filter((v) => !v.apply_url).map((v) => [String(v.id), v.title]).concat([['general', t('general_application')]]);
   return formShell(ctx, {
     type: 'career',
     multipart: true,

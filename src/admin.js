@@ -292,9 +292,14 @@ async function saveVacancy(req, res) {
   const id = req.params.id ? intId(req.params.id) : null;
   if (!b.t?.en?.title) return res.status(400).json({ error: 'English title is required.' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(b.posted_date || '')) return res.status(400).json({ error: 'Posted date is required.' });
-  const vals = [!!(b.active ?? true), b.posted_date, json(b.t, {})];
-  if (id) await run('UPDATE vacancies SET active=$1, posted_date=$2, t=$3 WHERE id=$4', [...vals, id]);
-  else await run('INSERT INTO vacancies (active, posted_date, t) VALUES ($1,$2,$3)', vals);
+  // How people apply: empty = the form on the Careers page (lands in the dashboard), or an external link
+  const applyUrl = b.apply_external ? String(b.apply_url || '').trim().slice(0, 1000) : '';
+  if (b.apply_external && !/^(https?:\/\/[^\s]+|mailto:[^\s@]+@[^\s@]+)$/i.test(applyUrl)) {
+    return res.status(400).json({ error: 'Enter the full application link, starting with https:// (or mailto: for an email address).' });
+  }
+  const vals = [!!(b.active ?? true), b.posted_date, json(b.t, {}), applyUrl];
+  if (id) await run('UPDATE vacancies SET active=$1, posted_date=$2, t=$3, apply_url=$4 WHERE id=$5', [...vals, id]);
+  else await run('INSERT INTO vacancies (active, posted_date, t, apply_url) VALUES ($1,$2,$3,$4)', vals);
   res.json({ ok: true });
 }
 api.post('/vacancies', saveVacancy);

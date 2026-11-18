@@ -432,7 +432,9 @@ function careers(ctx, { vacancies, photos }) {
           <td data-label="${esc(t('col_department'))}">${esc(v.department)}</td>
           <td data-label="${esc(t('col_city'))}">${esc(v.city)}</td>
           <td data-label="${esc(t('col_posted'))}"><time datetime="${esc(v.posted_date)}">${formatDate(v.posted_date, lang)}</time></td>
-          <td><a class="text-link" href="#join" data-apply="${v.id}">${esc(t('apply'))} ${arrow}</a></td>
+          <td>${v.apply_url
+            ? `<a class="text-link" href="${esc(v.apply_url)}" target="_blank" rel="noopener">${esc(t('apply'))} <span aria-hidden="true">↗</span><span class="sr-only"> (${esc(t('opens_new_tab'))})</span></a>`
+            : `<a class="text-link" href="#join" data-apply="${v.id}">${esc(t('apply'))} ${arrow}</a>`}</td>
         </tr>`).join('')}</tbody>
       </table>
       <p class="muted vac-empty" hidden>${esc(t('no_match'))}</p>` : `<p class="lead">${esc(t('no_vacancies'))}</p>`}

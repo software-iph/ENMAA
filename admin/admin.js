@@ -999,8 +999,9 @@
     const rows = await api('/vacancies');
     main.innerHTML = `<div class="top"><h1>Vacancies</h1><div class="actions"><a class="btn" href="#/vacancy/new">+ Add vacancy</a></div></div>
       <p class="muted">Active vacancies are listed on the Careers page and appear in the “Position Applying For” list of the application form.</p>
-      ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>Position</th><th>Department</th><th>City</th><th>Posted</th><th>Status</th></tr></thead><tbody>
+      ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>Position</th><th>Department</th><th>City</th><th>Apply</th><th>Posted</th><th>Status</th></tr></thead><tbody>
       ${rows.map((v) => `<tr data-go="#/vacancy/${v.id}"><td><b>${esc(v.t.en?.title)}</b><br><span class="muted ar" dir="rtl">${esc(v.t.ar?.title)}</span></td><td>${esc(v.t.en?.department)}</td><td>${esc(v.t.en?.city)}</td>
+        <td class="nowrap">${v.apply_url ? '<span class="pill type">External link</span>' : '<span class="pill type">On website</span>'}</td>
         <td class="nowrap">${fmtDate(v.posted_date)}</td><td>${v.active ? '<span class="pill on">Active</span>' : '<span class="pill off">Closed</span>'}</td></tr>`).join('')}
       </tbody></table></div>` : '<div class="empty">No vacancies. The Careers page will invite general applications.</div>'}`;
     bindRowLinks(main);
@@ -1016,14 +1017,27 @@
         <label class="f"><span>Posted date *</span><input type="date" data-field="posted_date" value="${esc(v.posted_date)}"></label>
         <div class="f" style="padding-top:22px"><label class="chk"><input type="checkbox" data-field="active" ${v.active ? 'checked' : ''}> Active (shown on the website)</label></div></div>
       </div>
+      <div class="card"><h2>How do people apply?</h2>
+        <div class="apply-opts">
+          <label class="perm"><input type="radio" name="apply_mode" value="site" ${v.apply_url ? '' : 'checked'}> <span><b>On this website</b><small>Applicants fill in the form on the Careers page and attach their CV. Applications arrive in the dashboard under Received → Job applications.</small></span></label>
+          <label class="perm"><input type="radio" name="apply_mode" value="external" ${v.apply_url ? 'checked' : ''}> <span><b>External link</b><small>The Apply button opens another page in a new tab (for example LinkedIn, a recruitment site or an online form). Nothing arrives in the dashboard.</small></span></label>
+        </div>
+        <label class="f" id="applyUrlRow"${v.apply_url ? '' : ' hidden'}><span>Application link *</span><input type="url" data-field="apply_url" value="${esc(v.apply_url || '')}" placeholder="https://"></label>
+      </div>
       <div class="savebar"><button class="btn" type="submit">Save vacancy</button>${isNew ? '' : '<button class="btn danger" type="button" id="del">Delete</button>'}<span class="err" role="alert"></span></div>
       </form>`;
     $('#ed').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const body = { t: readT(main), posted_date: fieldVal(main, 'posted_date'), active: $('[data-field=active]', main).checked };
+      const external = $('[name=apply_mode]:checked', main).value === 'external';
+      const body = { t: readT(main), posted_date: fieldVal(main, 'posted_date'), active: $('[data-field=active]', main).checked, apply_external: external, apply_url: external ? fieldVal(main, 'apply_url') : '' };
       try { await api(isNew ? '/vacancies' : '/vacancies/' + id, { method: isNew ? 'POST' : 'PUT', body }); toast('Vacancy saved'); location.hash = '#/vacancies'; }
       catch (err) { $('.err', main).textContent = err.message; }
     });
+    $$('[name=apply_mode]', main).forEach((r) => r.addEventListener('change', () => {
+      const ext = $('[name=apply_mode]:checked', main).value === 'external';
+      $('#applyUrlRow').hidden = !ext;
+      if (ext) $('[data-field=apply_url]', main).focus();
+    }));
     $('#del')?.addEventListener('click', async () => { if (!confirm('Delete this vacancy?')) return; await api('/vacancies/' + id, { method: 'DELETE' }); toast('Deleted'); location.hash = '#/vacancies'; });
   }
 

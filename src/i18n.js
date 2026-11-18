@@ -31,6 +31,7 @@ const en = {
   we_are_title: 'A master developer shaping Libya’s future, one district, destination and development at a time.',
   we_are_text: 'With every district, destination and development, we apply global thinking to local potential, one that reflects the richness of its land and the ambition of what lies ahead. We exist to deliver progress at scale, and to showcase Libya to the world through the quality of what we create.',
   about_more: 'About ENMAA',
+  opens_new_tab: 'opens in a new tab',
   nav_about: 'About', about_text: 'A Libyan master developer delivering progress at scale, and showcasing Libya to the world through the quality of what we create.',
 
   label_developments: 'Our Developments', all_developments: 'All Developments', view_project: 'View Development',
@@ -205,6 +206,7 @@ const ar = {
   we_are_title: 'مطوّر رئيسي يرسم مستقبل ليبيا، حيًّا بعد حيّ، ووجهةً بعد وجهة.',
   we_are_text: 'في كل حي ووجهة ومشروع، نوظّف فكرًا عالميًا لخدمة إمكانات محلية تعكس غنى الأرض وطموح المستقبل. نعمل على تحقيق التقدّم على نطاق واسع، وعلى تقديم ليبيا للعالم من خلال جودة ما نبنيه.',
   about_more: 'عن إنماء',
+  opens_new_tab: 'يفتح في علامة تبويب جديدة',
   nav_about: 'من نحن', about_text: 'مطوّر رئيسي ليبي يحقق التقدّم على نطاق واسع، ويقدّم ليبيا للعالم من خلال جودة ما نبنيه.',
 
   label_developments: 'مشاريعنا', all_developments: 'جميع المشاريع', view_project: 'عرض المشروع',

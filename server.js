@@ -64,7 +64,7 @@ function localizeNews(n, lang) {
   return { id: n.id, slug: n.slug, date: n.date, image: n.image, title: pick(n.t, lang, 'title'), category: pick(n.t, lang, 'category'), summary: pick(n.t, lang, 'summary'), body: pick(n.t, lang, 'body') };
 }
 function localizeVacancy(v, lang) {
-  return { id: v.id, posted_date: v.posted_date, title: pick(v.t, lang, 'title'), department: pick(v.t, lang, 'department'), city: pick(v.t, lang, 'city'), description: pick(v.t, lang, 'description') };
+  return { id: v.id, posted_date: v.posted_date, title: pick(v.t, lang, 'title'), department: pick(v.t, lang, 'department'), city: pick(v.t, lang, 'city'), description: pick(v.t, lang, 'description'), apply_url: v.apply_url || '' };
 }
 
 // 3D elements a development keyword shows: `scenes` (several allowed); `scene` is the first, for the icon.
@@ -270,8 +270,9 @@ async function handleForm(req, res) {
     if (body.position === 'general') subject = 'General application';
     else {
       const v = Number.isInteger(Number(body.position)) ? await one('SELECT * FROM vacancies WHERE id = $1', [Number(body.position)]) : null;
-      subject = v ? pick(v.t, 'en', 'title') : 'General application';
-      data.vacancy_id = v ? v.id : null;
+      const own = v && !v.apply_url;
+      subject = own ? pick(v.t, 'en', 'title') : 'General application';
+      data.vacancy_id = own ? v.id : null;
     }
   }
   if (type === 'project') {

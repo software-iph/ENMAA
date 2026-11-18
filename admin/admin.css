@@ -265,6 +265,7 @@ td.nowrap { white-space: nowrap; }
 .lang-tabbar button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 8px 14px; font: inherit; font-size: 13px; cursor: pointer; color: inherit; opacity: .65; }
 .lang-tabbar button.on { opacity: 1; border-bottom-color: var(--purple); color: var(--purple); font-weight: 600; }
 .lang-note { margin-inline-start: auto; font-size: 12px; }
+.apply-opts { display: grid; gap: 10px; margin-bottom: 14px; }
 .opt-table { min-width: 900px; margin-bottom: 12px; }
 .opt-table td { padding: 6px; vertical-align: middle; }
 .opt-table td.num { width: 28px; }

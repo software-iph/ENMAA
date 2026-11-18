@@ -470,7 +470,8 @@ async function accountsAndRefsV1() {
     ALTER TABLE admins ADD COLUMN IF NOT EXISTS full_name TEXT NOT NULL DEFAULT '';
     ALTER TABLE submissions ADD COLUMN IF NOT EXISTS ref TEXT;
     ALTER TABLE submissions ADD COLUMN IF NOT EXISTS files JSONB NOT NULL DEFAULT '[]';
-    CREATE UNIQUE INDEX IF NOT EXISTS submissions_ref ON submissions (ref);`);
+    CREATE UNIQUE INDEX IF NOT EXISTS submissions_ref ON submissions (ref);
+    ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS apply_url TEXT NOT NULL DEFAULT '';`);
   if (await one("SELECT value FROM settings WHERE key = 'migration_accounts_v1'")) return;
   // every account that exists today becomes a super account
   await run("UPDATE admins SET role = 'super'");
