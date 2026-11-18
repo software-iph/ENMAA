@@ -150,6 +150,8 @@
     const active = { project: 'projects', article: 'news', vacancy: 'vacancies', list: `list/${sub}` }[page] || page;
     const link = (key, label, ic, extra = '') => `<a href="#/${key}" class="${active === key ? 'on' : ''}">${icon(ic)}<span class="lbl">${label}</span>${extra}</a>`;
     const listLinks = (group) => Object.entries(LISTS).filter(([, [, g]]) => g === group).map(([k, [ic]]) => link(`list/${k}`, LIST_LABELS[k], ic)).join('');
+    // the sidebar is rebuilt on every page; keep it where the user had scrolled it
+    const sideScroll = $('.side')?.scrollTop || 0;
     app.innerHTML = `<div class="mobile-top"><img src="/logos/en-white.png" alt="ENMAA"><button type="button" id="menu">Menu</button></div>
     <div class="shell">
       <aside class="side">
@@ -178,6 +180,7 @@
       </aside>
       <main class="main" tabindex="-1"></main>
     </div>`;
+    $('.side').scrollTop = sideScroll;
     $('#logout').addEventListener('click', async () => { await api('/logout', { method: 'POST' }); me = null; location.hash = ''; render(); });
     $('#menu').addEventListener('click', () => $('.side').classList.toggle('open'));
   }
