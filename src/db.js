@@ -175,6 +175,7 @@ const DEFAULT_SETTINGS = {
   legal_accessibility_ar: 'تسعى إنماء إلى تحقيق معايير WCAG 2.1 AA في هذا الموقع. إذا واجهت أي صعوبة في الاستخدام، يُرجى إبلاغنا عبر صفحة التواصل.',
   // Page images (edited under "Page images" in the dashboard)
   img_band: '/img/sunset-city.jpg',
+  img_hero_about: '/img/silhouette.jpg',
   img_hero_developments: '/img/commercial.jpg',
   img_hero_careers: '/img/dining.jpg',
   img_hero_vendors: '/img/tower.jpg',

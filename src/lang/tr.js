@@ -22,6 +22,7 @@ module.exports = {
   we_are_title: 'Libya’nın geleceğini her bölge, destinasyon ve projeyle şekillendiren bir ana geliştirici.',
   we_are_text: 'Her bölgede, destinasyonda ve projede küresel bakış açısını yerel potansiyele uyguluyoruz; bu potansiyel, bu toprakların zenginliğini ve önümüzdeki dönemin hedeflerini yansıtır. Var oluş amacımız büyük ölçekte ilerleme sağlamak ve ortaya koyduğumuz işlerin kalitesiyle Libya’yı dünyaya tanıtmaktır.',
   about_more: 'ENMAA Hakkında',
+  nav_about: 'Hakkımızda', about_text: 'Büyük ölçekte ilerleme sağlayan ve yarattıklarının kalitesiyle Libya’yı dünyaya tanıtan Libyalı bir ana geliştirici.',
 
   label_developments: 'Projelerimiz', all_developments: 'Tüm Projeler', view_project: 'Projeyi Görüntüle',
   label_what_we_do: 'Ne yapıyoruz', what_we_do_title: 'İlerleme için inşa edilen mekânlar',

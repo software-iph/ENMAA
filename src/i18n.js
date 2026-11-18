@@ -31,6 +31,7 @@ const en = {
   we_are_title: 'A master developer shaping Libya’s future, one district, destination and development at a time.',
   we_are_text: 'With every district, destination and development, we apply global thinking to local potential, one that reflects the richness of its land and the ambition of what lies ahead. We exist to deliver progress at scale, and to showcase Libya to the world through the quality of what we create.',
   about_more: 'About ENMAA',
+  nav_about: 'About', about_text: 'A Libyan master developer delivering progress at scale, and showcasing Libya to the world through the quality of what we create.',
 
   label_developments: 'Our Developments', all_developments: 'All Developments', view_project: 'View Development',
   label_what_we_do: 'What we do', what_we_do_title: 'Places built for progress',
@@ -204,6 +205,7 @@ const ar = {
   we_are_title: 'مطوّر رئيسي يرسم مستقبل ليبيا، حيًّا بعد حيّ، ووجهةً بعد وجهة.',
   we_are_text: 'في كل حي ووجهة ومشروع، نوظّف فكرًا عالميًا لخدمة إمكانات محلية تعكس غنى الأرض وطموح المستقبل. نعمل على تحقيق التقدّم على نطاق واسع، وعلى تقديم ليبيا للعالم من خلال جودة ما نبنيه.',
   about_more: 'عن إنماء',
+  nav_about: 'من نحن', about_text: 'مطوّر رئيسي ليبي يحقق التقدّم على نطاق واسع، ويقدّم ليبيا للعالم من خلال جودة ما نبنيه.',
 
   label_developments: 'مشاريعنا', all_developments: 'جميع المشاريع', view_project: 'عرض المشروع',
   label_what_we_do: 'ما نقوم به', what_we_do_title: 'أماكن تُبنى للتقدّم',
@@ -372,7 +374,8 @@ const LIST_KEYS = /^(type_\d|value_\d|disc_\d|doc_\d|sector_(residential|commerc
 // Groups for the Site texts screen, matched in order by key.
 const GROUPS = [
   ['Navigation & footer', /^(site_name|nav_|menu$|close$|skip$|language$|footer_|privacy$|terms$|accessibility$|rights$|pause_|play_|meta_)/],
-  ['Home', /^(hero_|scroll$|label_we_are|we_are_|label_partners|about_more|label_developments|all_developments$|view_project|label_what|what_we_do|label_values|values_title|label_news|news_title|all_news|read_more|back_to_news|no_news|news_|open_full_story|copy_link|link_copied|prev_slide|next_slide|label_find|find_way|path_)/],
+  ['About page', /^(about_|label_we_are|we_are_|label_what|what_we_do|label_values|values_title|purpose_label|purpose_title)/],
+  ['Home', /^(hero_|scroll$|label_partners|label_developments|all_developments$|view_project|label_news|news_title|all_news|read_more|back_to_news|no_news|news_|open_full_story|copy_link|link_copied|prev_slide|next_slide|label_find|find_way|path_)/],
   ['Developments', /^(kw_|filter_|dev_|developments_count|fact_|download_|register_interest|tab_|gallery$|label_render|label_lifestyle|label_photo|project_|other_dev|all_developments_link)/],
   ['Careers', /^(careers_|view_vac|join_|commitment|vacancies|search_roles|all_dep|all_cit|col_|apply$|no_vac|no_match|first_name|last_name|position$|general_app|choose$|cv)/],
   ['Vendors', /^(vendors_|vendor_|who_|prepare_|register_(label|title|text)|step_|vf_|ct_|ak_|collab|applicant_kind|legal_name|reg_no|website$|contact_name|job_title|activities|coverage|experience|affiliations|software|certifications|file_|files_|decl_)/],

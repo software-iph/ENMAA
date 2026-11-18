@@ -22,6 +22,7 @@ module.exports = {
   we_are_title: '一家总体开发商，以每一个城区、目的地和项目，塑造利比亚的未来。',
   we_are_text: '在每一个城区、目的地和项目中，我们都以全球视野激活本土潜力，彰显这片土地的丰饶与未来的雄心。我们致力于大规模推动发展，并以所创造项目的品质，向世界展示利比亚。',
   about_more: '了解 ENMAA',
+  nav_about: '关于我们', about_text: '一家利比亚总体开发商，以规模化方式推动发展，并通过卓越的作品向世界展示利比亚。',
 
   label_developments: '我们的项目', all_developments: '全部项目', view_project: '查看项目',
   label_what_we_do: '我们的业务', what_we_do_title: '为发展而建的场所',

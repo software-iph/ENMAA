@@ -137,7 +137,7 @@
   const icon = (name) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ''}</svg>`;
   // Editable lists shown in the sidebar: kind -> [icon, group]
   const LISTS = {
-    hero_slide: ['slides', 'Home'], service: ['layers', 'Home'], value: ['star', 'Home'], partner: ['handshake', 'Home'],
+    hero_slide: ['slides', 'Home'], partner: ['handshake', 'Home'], service: ['layers', 'About'], value: ['star', 'About'],
     dev_keyword: ['tag', 'Content'], sector: ['chart', 'Content'], discipline: ['tools', 'Content'], document: ['file', 'Content'], careers_photo: ['camera', 'Content'],
   };
   const LIST_LABELS = {
@@ -159,6 +159,8 @@
           ${can('visitors') ? `<div class="group">Statistics</div>${link('visitors', 'Visitors', 'trend')}` : ''}
           ${can('content') ? `<div class="group">Home page</div>
           ${listLinks('Home')}
+          <div class="group">About page</div>
+          ${listLinks('About')}
           <div class="group">Content</div>
           ${link('projects', 'Developments', 'building')}
           ${link('news', 'News', 'news')}
@@ -653,8 +655,8 @@
   ];
   const LIST_HELP = {
     hero_slide: 'The home page slideshow. Each slide has a photo and the label shown in the tabs at the bottom of the hero.',
-    service: 'The expanding panels in “What we do” on the home page.',
-    value: 'The values list on the home page. The photo shows when the value is highlighted.',
+    service: 'The expanding panels in “What we do” on the About page.',
+    value: 'The values list on the About page. The photo shows when the value is highlighted.',
     partner: 'Logos in the “Working with” strip on the home page. The strip is hidden until you add a logo. Use approved logos only (PNG or JPG).',
     dev_keyword: 'The keyword buttons on “Our Developments”. Each keyword shows one or more elements in the 3D model (sea, towers, villas…). Tick the keywords on each development under Developments → edit; a development appears when it has every keyword a visitor picks.',
     careers_photo: 'The photo strip under “Our Commitment” on the Careers page.',
@@ -792,12 +794,13 @@
 
   // ---------- page images ----------
   const PAGE_IMAGES = [
+    ['img_hero_about', 'About — top banner'],
     ['img_hero_developments', 'Our Developments — top banner'],
     ['img_hero_careers', 'Careers — top banner'],
     ['img_hero_vendors', 'Vendors — top banner'],
     ['img_hero_investors', 'Investors — top banner'],
     ['img_hero_contact', 'Contact — top banner'],
-    ['img_band', 'Home — “To Unlock the True Potential of Libya” band'],
+    ['img_band', 'About — “To Unlock the True Potential of Libya” band'],
     ['img_share', 'Image shown when the site is shared on social media'],
   ];
   async function pageImages(main) {

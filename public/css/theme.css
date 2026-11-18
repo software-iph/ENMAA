@@ -41,7 +41,11 @@ html[lang="ar"] .btn, html[lang="ar"] .text-link { font-size: 15px; }
 
 /* ---------- navigation ---------- */
 .nav-link { font-size: 12px; font-weight: 600; letter-spacing: .14em; }
-.nav-list { gap: 34px; }
+.nav-list { gap: clamp(16px, 2.3vw, 34px); }
+.nav-link { white-space: nowrap; }
+.nav-inner { gap: clamp(20px, 2.6vw, 40px); }
+/* six links + Contact + language: tighten the letters on mid-size screens so the bar stays on one line */
+@media (max-width: 1360px) { .nav-link { letter-spacing: .08em; font-size: 11.5px; } }
 .nav-cta { display: inline-flex; align-items: center; height: 40px; padding: 0 20px; border: 1px solid rgba(255, 255, 255, .55); font-size: 13px; font-weight: 600; letter-spacing: .04em; text-decoration: none; border-radius: 2px; transition: background .25s, border-color .25s; white-space: nowrap; }
 .nav-cta:hover { background: rgba(255, 255, 255, .12); border-color: var(--white); }
 html[lang="ar"] .nav-link { font-size: 15px; letter-spacing: 0; }
@@ -99,8 +103,8 @@ html[lang="ar"] .hero--home .hero-current { letter-spacing: 0; font-size: 14px; 
 /* ---------- chapters ---------- */
 .chapter--grey { background: var(--cream); }
 
-/* ---------- values: one cream card — heading and photo on one side, list on the other ---------- */
-.values-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: stretch; background: var(--cream); padding: 64px; }
+/* ---------- values: plain white section — heading and photo on one side, list on the other ---------- */
+.values-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: stretch; background: none; padding: 0; }
 .values-side { display: flex; flex-direction: column; }
 .values-side .sec-head { margin-bottom: 8px; }
 .values-media { aspect-ratio: auto; flex: 1; min-height: 340px; margin-top: auto; }
@@ -121,7 +125,7 @@ html[lang="ar"] .band-title { letter-spacing: 0; line-height: 1.5; }
 
 /* ---------- tablet & phone ---------- */
 @media (max-width: 1100px) {
-  .values-card { gap: 40px; padding: 48px 40px; }
+  .values-card { gap: 40px; }
   .nav-cta { display: none; }
 }
 @media (max-width: 767px) {
@@ -140,7 +144,7 @@ html[lang="ar"] .band-title { letter-spacing: 0; line-height: 1.5; }
   .hero--home .hero-tab { width: 34px; }
   .hero--home .hero-pause { margin-inline-end: auto; }
   .hero--home .hero-current { display: none; }
-  .values-card { grid-template-columns: 1fr; gap: 28px; padding: 32px 20px; margin-inline: calc(-1 * var(--side)); }
+  .values-card { grid-template-columns: 1fr; gap: 28px; }
   .values-media { flex: none; min-height: 0; aspect-ratio: 3 / 2; }
   .band-content { padding-top: 72px; padding-bottom: 72px; }
 

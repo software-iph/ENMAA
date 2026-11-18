@@ -30,6 +30,7 @@ function nav(ctx) {
   const { t, lang, active, path } = ctx;
   const items = [
     ['home', '', t('nav_home')],
+    ['about', 'about', t('nav_about')],
     ['developments', 'developments', t('nav_developments')],
     ['careers', 'careers', t('nav_careers')],
     ['vendors', 'vendors', t('nav_vendors')],
@@ -76,7 +77,7 @@ function footer(ctx) {
       ${social ? `<ul class="social">${social}</ul>` : ''}
     </div>
     <div><h3 class="f-title">${esc(t('footer_company'))}</h3><ul>
-      <li><a href="/${lang}/#story">${esc(t('footer_about'))}</a></li>
+      <li><a href="/${lang}/about">${esc(t('footer_about'))}</a></li>
       <li><a href="/${lang}/#news">${esc(t('footer_news'))}</a></li>
       <li><a href="/${lang}/contact">${esc(t('footer_contact'))}</a></li></ul></div>
     <div><h3 class="f-title">${esc(t('footer_explore'))}</h3><ul>

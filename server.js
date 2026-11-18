@@ -96,7 +96,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/sitemap.xml', async (req, res) => {
-  const paths = ['/', '/developments', '/careers', '/vendors', '/investors', '/contact', '/privacy', '/terms', '/accessibility']
+  const paths = ['/', '/about', '/developments', '/careers', '/vendors', '/investors', '/contact', '/privacy', '/terms', '/accessibility']
     .concat((await q.projects()).map((p) => `/developments/${p.slug}`));
   const urls = paths.flatMap((p) => LANGS.map((l) => `<url><loc>${BASE_URL}/${l}${p}</loc>${LANGS.map((a) => `<xhtml:link rel="alternate" hreflang="${a}" href="${BASE_URL}/${a}${p}"/>`).join('')}</url>`));
   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
@@ -118,12 +118,17 @@ langRouter.use(analytics.track); // cookieless visitor statistics (see src/analy
 
 langRouter.get('/', async (req, res) => {
   const { lang } = res.locals.ctx;
-  const [projects, news, slides, services, values, partners] = await Promise.all([
-    q.projects(), q.news(24), listItems('hero_slide', lang), listItems('service', lang), listItems('value', lang), listItems('partner', lang),
+  const [projects, news, slides, partners] = await Promise.all([
+    q.projects(), q.news(24), listItems('hero_slide', lang), listItems('partner', lang),
   ]);
   const localized = projects.map((r) => localizeProject(r, lang));
   const featured = localized.filter((p) => p.featured).slice(0, 2);
-  res.send(pages.home(res.locals.ctx, { featured, news: news.map((n) => localizeNews(n, lang)), slides, services, values, partners }));
+  res.send(pages.home(res.locals.ctx, { featured, news: news.map((n) => localizeNews(n, lang)), slides, partners }));
+});
+langRouter.get('/about', async (req, res) => {
+  const { lang } = res.locals.ctx;
+  const [services, values] = await Promise.all([listItems('service', lang), listItems('value', lang)]);
+  res.send(pages.about(res.locals.ctx, { services, values }));
 });
 langRouter.get('/developments', async (req, res) => {
   const { lang } = res.locals.ctx;

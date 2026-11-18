@@ -47,7 +47,7 @@ function pageHero(ctx, { eyebrow, title, text, image, actions = '', small = fals
 const pad = (n) => String(n).padStart(2, '0');
 const chevron = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
 
-function home(ctx, { featured, news, slides, services, values, partners }) {
+function home(ctx, { featured, news, slides, partners }) {
   const { t, lang, settings } = ctx;
 
   const body = `
@@ -66,24 +66,13 @@ function home(ctx, { featured, news, slides, services, values, partners }) {
     <div class="hero-base"><div class="wrap hero-base-inner">
       <div class="hero-actions reveal">
         <a class="btn btn-hero" href="/${lang}/developments">${esc(t('hero_explore'))} ${arrow}</a>
-        <a class="text-link text-link--light" href="#story">${esc(t('hero_story'))} ${arrow}</a>
+        <a class="text-link text-link--light" href="/${lang}/about">${esc(t('hero_story'))} ${arrow}</a>
       </div>
       <ul class="hero-tabs" style="--tabs:${Math.max(1, slides.length)}" data-stagger>${slides.map((sl, i) => `<li class="reveal"><button type="button" class="hero-tab${i === 0 ? ' is-active' : ''}" data-goto="${i}" aria-pressed="${i === 0}">
         <span class="hero-tab-num">${pad(i + 1)}</span><span class="hero-tab-label">${esc(sl.title)}</span><span class="hero-tab-bar"><b></b></span></button></li>`).join('')}</ul>
       <span class="hero-current" data-current aria-hidden="true">${esc(slides[0] ? slides[0].title : '')}</span>
       ${slides.length > 1 ? `<button type="button" class="hero-pause reveal" data-pause aria-label="${esc(t('pause_slideshow'))}" data-label-pause="${esc(t('pause_slideshow'))}" data-label-play="${esc(t('play_slideshow'))}"><span aria-hidden="true"></span></button>` : ''}
     </div></div>
-  </section>
-
-  <section class="story" id="story">
-    <div class="wrap story-inner">
-      <div class="sec-rule sec-rule--center"><span class="rule"></span>${eIcon()}<span class="sec-label">${esc(t('label_we_are'))}</span><span class="rule"></span></div>
-      <p class="story-statement" data-scrub>${esc(t('we_are_title'))}</p>
-      <div class="story-foot reveal">
-        <p class="lead">${esc(t('we_are_text'))}</p>
-        <a class="text-link" href="/${lang}/developments">${esc(t('hero_cta'))} ${arrow}</a>
-      </div>
-    </div>
   </section>
 
   ${featured.length ? `<section class="chapter chapter--tight">
@@ -101,6 +90,49 @@ function home(ctx, { featured, news, slides, services, values, partners }) {
       </article>`).join('')}
     </div>
   </section>` : ''}
+
+  ${newsOrbit(ctx, news)}
+
+  ${partners.length ? `<section class="partners" aria-label="${esc(t('label_partners'))}">
+    <div class="wrap">${sectionHeader(t('label_partners'))}</div>
+    <div class="partners-strip"><div class="partners-track">${[0, 1].map((dup) => `<ul${dup ? ' aria-hidden="true"' : ''}>${partners.map((pt) => `<li>${pt.link
+      ? `<a href="${esc(pt.link)}" target="_blank" rel="noopener"${dup ? ' tabindex="-1"' : ''}>${img(pt.image, pt.title, '', true, '180px')}</a>`
+      : img(pt.image, pt.title, '', true, '180px')}</li>`).join('')}</ul>`).join('')}</div></div>
+  </section>` : ''}
+
+  <section class="chapter chapter--plum">
+    <div class="wrap">
+      ${sectionHeader(t('label_find_way'), t('find_way_title'), { light: true })}
+      <div class="paths" data-stagger>
+        ${[['invest', 'investors'], ['vendors', 'vendors'], ['careers', 'careers']].map(([k, href]) => `<a class="path-card" href="/${lang}/${href}">
+          <span class="eyebrow">${esc(t(`path_${k}_eyebrow`))}</span>
+          <h3 class="h3">${esc(t(`path_${k}`))}</h3>
+          <p>${esc(t(`path_${k}_text`))}</p>
+          <span class="text-link">${esc(t(`path_${k}_cta`))} ${arrow}</span>
+        </a>`).join('')}
+      </div>
+    </div>
+  </section>`;
+  return layout({ ...ctx, active: 'home' }, body);
+}
+
+// ---------------- ABOUT ----------------
+// Who we are, what we do, our values and our purpose (moved here from the home page).
+function about(ctx, { services, values }) {
+  const { t, lang, settings } = ctx;
+  const body = `
+  ${pageHero(ctx, { eyebrow: t('nav_about'), title: t('about_more'), text: t('about_text'), image: settings.img_hero_about })}
+
+  <section class="story" id="story">
+    <div class="wrap story-inner">
+      <div class="sec-rule sec-rule--center"><span class="rule"></span>${eIcon()}<span class="sec-label">${esc(t('label_we_are'))}</span><span class="rule"></span></div>
+      <p class="story-statement" data-scrub>${esc(t('we_are_title'))}</p>
+      <div class="story-foot reveal">
+        <p class="lead">${esc(t('we_are_text'))}</p>
+        <a class="text-link" href="/${lang}/developments">${esc(t('hero_cta'))} ${arrow}</a>
+      </div>
+    </div>
+  </section>
 
   <section class="chapter chapter--grey what-we-do">
     <div class="wrap">
@@ -141,30 +173,8 @@ function home(ctx, { featured, news, slides, services, values, partners }) {
       <a class="text-link text-link--light reveal" href="/${lang}/investors">${esc(t('path_invest_cta'))} ${arrow}</a>
     </div>
   </section>
-
-  ${newsOrbit(ctx, news)}
-
-  ${partners.length ? `<section class="partners" aria-label="${esc(t('label_partners'))}">
-    <div class="wrap">${sectionHeader(t('label_partners'))}</div>
-    <div class="partners-strip"><div class="partners-track">${[0, 1].map((dup) => `<ul${dup ? ' aria-hidden="true"' : ''}>${partners.map((pt) => `<li>${pt.link
-      ? `<a href="${esc(pt.link)}" target="_blank" rel="noopener"${dup ? ' tabindex="-1"' : ''}>${img(pt.image, pt.title, '', true, '180px')}</a>`
-      : img(pt.image, pt.title, '', true, '180px')}</li>`).join('')}</ul>`).join('')}</div></div>
-  </section>` : ''}
-
-  <section class="chapter chapter--plum">
-    <div class="wrap">
-      ${sectionHeader(t('label_find_way'), t('find_way_title'), { light: true })}
-      <div class="paths" data-stagger>
-        ${[['invest', 'investors'], ['vendors', 'vendors'], ['careers', 'careers']].map(([k, href]) => `<a class="path-card" href="/${lang}/${href}">
-          <span class="eyebrow">${esc(t(`path_${k}_eyebrow`))}</span>
-          <h3 class="h3">${esc(t(`path_${k}`))}</h3>
-          <p>${esc(t(`path_${k}_text`))}</p>
-          <span class="text-link">${esc(t(`path_${k}_cta`))} ${arrow}</span>
-        </a>`).join('')}
-      </div>
-    </div>
-  </section>`;
-  return layout({ ...ctx, active: 'home' }, body);
+  `;
+  return layout({ ...ctx, active: 'about', title: t('nav_about') }, body);
 }
 
 // Home: news cards standing on the inside of a slowly turning ring.
@@ -544,4 +554,4 @@ function notFound(ctx) {
   return layout({ ...ctx, active: '404', title: t('not_found_title'), solidNav: true }, body);
 }
 
-module.exports = { home, developments, project, careers, vendors, investors, contact, legal, notFound };
+module.exports = { home, about, developments, project, careers, vendors, investors, contact, legal, notFound };
