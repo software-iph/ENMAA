@@ -498,53 +498,97 @@
     $$('.side nav a').forEach((a) => a.classList.toggle('on', a.getAttribute('href') === `#/inbox?box=${curBox}`));
     if (m.status === 'new') { await api('/submissions/' + id, { method: 'PATCH', body: { status: 'in_progress' } }); m.status = 'in_progress'; }
     const d = m.data || {};
-    const link = (u) => (/^https?:\/\//i.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a>` : esc(u));
     const vendor = m.type === 'vendor';
-    const rows = [
-      ['Reference', m.ref], ['Form', TYPES[m.type] || m.type], ['Received', fmtDate(m.created_at)],
-      ...(vendor ? [
-        ['Collaboration type', COLLAB[d.collab_type] || d.collab_type], ['Applicant type', KIND[d.applicant_kind] || d.applicant_kind],
-        ['Legal name', m.organisation], ['Registration number', d.reg_no], ['Country', m.country], ['Address', d.address],
-        ['Website', d.website ? link(d.website) : '', true],
-        ['Contact person', m.name], ['Job title', d.job_title],
-        ['Email', m.email], ['Phone', m.phone],
-        ['Geographical coverage', d.coverage], ['Associations / affiliations', d.affiliations], ['Software and tools', d.software],
-        ['Declarations', d.declarations ? 'Accepted: accurate information, authority to represent, no legal impediments, privacy notice' : ''],
-      ] : [
-        ['Name', m.name], ['Email', m.email],
-        ['Phone', m.phone], ['Organisation', m.organisation], ['Country', m.country],
-        [m.type === 'career' ? 'Position' : m.type === 'project' ? 'Development' : 'Subject', m.subject],
-        ['Sector', d.sector], ['Investment range', d.investment_range], ['Preferred language', LANG_LABEL[d.preferred_language] || d.preferred_language],
-      ]),
-      ['Website language', LANG_LABEL[m.lang] || m.lang],
-    ].filter((r) => r[1]);
-    // long answers of the vendor form, shown as blocks
-    const blocks = vendor ? [
-      ['Business activities, services or products', d.activities], ['Experience summary and previous projects', d.experience],
-      ['Standards, certifications and awards', d.certifications], ['Proposed collaboration', d.collaboration],
-    ].filter((b) => b[1]) : [];
+    const investor = m.type === 'investor';
     const files = m.files || [];
-    main.innerHTML = `<div class="top"><h1>${esc((vendor ? m.organisation : '') || m.name || 'Message')}</h1><div class="actions">
-        <a class="btn ghost" href="#/inbox?box=${curBox}">← Back to ${esc(BOXES[curBox].label.toLowerCase())}</a>
-      </div></div>
+    const link = (u) => (/^https?:\/\//i.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''))} ${icon('external')}</a>` : esc(u));
+    const copyBtn = (text, label) => `<button type="button" class="copy" data-copy="${esc(text)}" title="Copy ${label}" aria-label="Copy ${label}">Copy</button>`;
+    // a titled section of label/value pairs; empty values are left out, and an empty section is not shown
+    const section = (title, pairs, wide) => {
+      const rows = pairs.filter((p) => p[1]);
+      return rows.length ? `<section class="card d-sec"><h2>${title}</h2><dl class="kv2${wide ? ' kv2--one' : ''}">${rows.map(([k, v, raw]) => `<div><dt>${k}</dt><dd>${raw ? v : esc(v)}</dd></div>`).join('')}</dl></section>` : '';
+    };
+    const text = (title, v) => (v ? `<section class="card d-sec"><h2>${title}</h2><div class="answer">${esc(v)}</div></section>` : '');
+    const email = m.email ? `<span class="with-copy">${esc(m.email)} ${copyBtn(m.email, 'email')}</span>` : '';
+    const phone = m.phone ? `<span class="with-copy">${esc(m.phone)} ${copyBtn(m.phone, 'phone')}</span>` : '';
+
+    const title = (vendor ? m.organisation : '') || m.name || 'Message';
+    const subtitle = vendor ? [m.name, d.job_title].filter(Boolean).join(' · ')
+      : [m.organisation, m.country].filter(Boolean).join(' · ');
+    const initials = title.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+    // the few answers that matter most, shown as tiles under the header
+    const tiles = (vendor ? [
+      ['Collaboration type', COLLAB[d.collab_type] || d.collab_type], ['Applicant', KIND[d.applicant_kind] || d.applicant_kind], ['Country', m.country],
+    ] : investor ? [
+      ['Sector', d.sector], ['Investment range', d.investment_range], ['Preferred language', LANG_LABEL[d.preferred_language] || d.preferred_language],
+    ] : m.type === 'career' ? [['Position', m.subject]] : m.type === 'project' ? [['Development', m.subject]] : []).filter((x) => x[1]);
+
+    let body;
+    if (vendor) {
+      body = `
+        ${section('Company', [
+          ['Legal name', m.organisation], ['Registration number', d.reg_no], ['Country', m.country], ['Address', d.address],
+          ['Website', d.website ? link(d.website) : '', true], ['Geographical coverage', d.coverage],
+        ])}
+        ${section('Contact person', [['Name', m.name], ['Job title', d.job_title], ['Email', email, true], ['Phone', phone, true]])}
+        ${text('Business activities, services or products', d.activities)}
+        ${text('Experience summary and previous projects', d.experience)}
+        ${text('Proposed collaboration', d.collaboration)}
+        ${section('More details', [['Associations / affiliations', d.affiliations], ['Software and tools', d.software], ['Standards, certifications and awards', d.certifications]], true)}
+        <section class="card d-sec"><h2>Attachments ${files.length ? `<span class="count">${files.length}</span>` : ''}</h2>
+          ${files.length ? `<ul class="file-list">${files.map((f, i) => `<li>
+            <span class="file-ic">${esc((f.name.split('.').pop() || '').toUpperCase().slice(0, 4))}</span>
+            <span class="file-meta"><b>${esc(f.name)}</b><small>${esc(f.label)} · ${kb(f.size)}</small></span>
+            <a class="btn ghost sm" href="/admin/api/submissions/${m.id}/files/${i}">${icon('download')} Download</a></li>`).join('')}</ul>` : '<p class="muted">No files were attached.</p>'}
+        </section>
+        ${d.declarations ? `<section class="card d-sec"><h2>Declarations</h2><ul class="checks">
+          ${['The information provided is accurate and complete', 'Authorised to represent the applicant', 'No legal impediments to working with ENMAA', 'Accepted the privacy notice'].map((x) => `<li>${x}</li>`).join('')}</ul></section>` : ''}`;
+    } else {
+      body = `
+        ${section('Contact details', [['Name', m.name], ['Email', email, true], ['Phone', phone, true], ['Organisation', m.organisation], ['Country', m.country]])}
+        ${!investor && m.subject && m.type !== 'career' ? section('Subject', [[m.type === 'project' ? 'Development' : 'Subject', m.subject]], true) : ''}
+        ${text('Message', m.message)}
+        ${m.file_path ? `<section class="card d-sec"><h2>CV</h2><ul class="file-list"><li>
+          <span class="file-ic">${esc((m.file_name || '').split('.').pop().toUpperCase().slice(0, 4))}</span>
+          <span class="file-meta"><b>${esc(m.file_name)}</b><small>${m.type === 'career' ? esc(m.subject || '') : ''}</small></span>
+          <a class="btn ghost sm" href="/admin/api/submissions/${m.id}/file">${icon('download')} Download</a></li></ul></section>` : ''}`;
+    }
+
+    main.innerHTML = `<div class="top"><a class="back-link" href="#/inbox?box=${curBox}">← ${esc(BOXES[curBox].label)}</a></div>
       <div class="detail">
-        <div class="card">
-          <dl class="kv">${rows.map(([k, v, raw]) => `<dt>${k}</dt><dd>${raw ? v : esc(v)}</dd>`).join('')}</dl>
-          ${blocks.map(([k, v]) => `<h3 class="blk-h">${k}</h3><div class="msg">${esc(v)}</div>`).join('')}
-          ${m.message ? `<div class="msg">${esc(m.message)}</div>` : ''}
-          ${m.file_path ? `<p style="margin-top:16px"><a class="btn ghost" href="/admin/api/submissions/${m.id}/file">Download CV — ${esc(m.file_name)}</a></p>` : ''}
-          ${files.length ? `<h3 class="blk-h">Attachments</h3><ul class="files">${files.map((f, i) => `<li><a class="btn ghost sm" href="/admin/api/submissions/${m.id}/files/${i}">${icon('download')} ${esc(f.name)}</a> <span class="muted">${esc(f.label)} · ${kb(f.size)}</span></li>`).join('')}</ul>` : vendor ? '<p class="muted" style="margin-top:16px">No attachments.</p>' : ''}
+        <div class="d-main">
+          <header class="card d-head">
+            <span class="avatar" aria-hidden="true">${esc(initials || '?')}</span>
+            <div class="d-title">
+              <h1>${esc(title)}</h1>
+              ${subtitle ? `<p class="muted">${esc(subtitle)}</p>` : ''}
+              <div class="d-pills"><span class="pill type">${TYPES[m.type] || m.type}</span><span class="pill ${m.status}" id="statusPill">${STATUSES[m.status]}</span></div>
+            </div>
+            <dl class="d-meta">
+              ${m.ref ? `<div><dt>Reference</dt><dd><span class="with-copy"><b class="ref">${esc(m.ref)}</b> ${copyBtn(m.ref, 'reference')}</span></dd></div>` : ''}
+              <div><dt>Received</dt><dd>${fmtDate(m.created_at)}</dd></div>
+              ${m.lang ? `<div><dt>Website language</dt><dd>${esc(LANG_LABEL[m.lang] || m.lang)}</dd></div>` : ''}
+            </dl>
+          </header>
+          ${tiles.length ? `<div class="d-tiles">${tiles.map(([k, v]) => `<div class="d-tile"><span>${k}</span><b>${esc(v)}</b></div>`).join('')}</div>` : ''}
+          ${body}
         </div>
-        <div>
-          <div class="card"><h2>Status</h2><div class="status-btns">${Object.entries(STATUSES).map(([k, l]) => `<button type="button" data-status="${k}" class="${m.status === k ? 'on' : ''}" aria-pressed="${m.status === k}">${l}</button>`).join('')}</div></div>
-          <div class="card"><h2>Internal notes</h2><textarea id="notes" rows="6" aria-label="Internal notes">${esc(m.notes)}</textarea>
+        <aside class="d-side">
+          <div class="card"><h2>Status</h2><div class="status-btns">${Object.entries(STATUSES).map(([k, l]) => `<button type="button" data-status="${k}" class="${m.status === k ? 'on' : ''}" aria-pressed="${m.status === k}">${l}</button>`).join('')}</div>
+            <p class="muted small">Reply from your own email, then set the status to Replied.</p></div>
+          <div class="card"><h2>Internal notes</h2><textarea id="notes" rows="6" aria-label="Internal notes" placeholder="Only visible in the dashboard">${esc(m.notes)}</textarea>
             <div class="row" style="margin-top:10px"><button class="btn sm" id="saveNotes" type="button">Save notes</button></div></div>
           <div class="card"><h2>Delete</h2><p class="muted">Removes this item${m.file_path || files.length ? ' and its attached files' : ''} permanently.</p><button class="btn danger sm" id="del" type="button">Delete</button></div>
-        </div>
+        </aside>
       </div>`;
+    $$('[data-copy]', main).forEach((b) => b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.dataset.copy); toast('Copied'); } catch { toast('Could not copy', true); }
+    }));
     $$('[data-status]', main).forEach((b) => b.addEventListener('click', async () => {
       await api('/submissions/' + id, { method: 'PATCH', body: { status: b.dataset.status } });
       $$('[data-status]', main).forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
+      const pill = $('#statusPill'); pill.className = 'pill ' + b.dataset.status; pill.textContent = STATUSES[b.dataset.status];
       toast('Status: ' + STATUSES[b.dataset.status]);
     }));
     $('#saveNotes').addEventListener('click', async () => { await api('/submissions/' + id, { method: 'PATCH', body: { notes: $('#notes').value } }); toast('Notes saved'); });

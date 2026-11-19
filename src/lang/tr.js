@@ -6,7 +6,7 @@ module.exports = {
 
   footer_company: 'Şirket', footer_about: 'Hakkımızda', footer_news: 'Haberler', footer_contact: 'İletişim',
   footer_explore: 'Keşfedin', footer_work: 'Bizimle Çalışın', footer_vendor_reg: 'Tedarikçi kaydı',
-  privacy: 'Gizlilik', terms: 'Koşullar', accessibility: 'Erişilebilirlik', rights: 'Tüm hakları saklıdır.',
+  privacy: 'Gizlilik', terms: 'Koşullar', accessibility: 'Erişilebilirlik', rights: 'Tüm hakları saklıdır.', member_of: 'Bir IPH Group şirketidir',
 
   hero_eyebrow: 'Ana Geliştirici · Libya',
   hero_title: 'Libya’yı Şekillendiriyoruz',

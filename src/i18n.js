@@ -15,7 +15,7 @@ const en = {
 
   footer_company: 'Company', footer_about: 'About', footer_news: 'News', footer_contact: 'Contact',
   footer_explore: 'Explore', footer_work: 'Work With Us', footer_vendor_reg: 'Vendor registration',
-  privacy: 'Privacy', terms: 'Terms', accessibility: 'Accessibility', rights: 'All rights reserved.',
+  privacy: 'Privacy', terms: 'Terms', accessibility: 'Accessibility', rights: 'All rights reserved.', member_of: 'A member of IPH Group',
 
   hero_eyebrow: 'A Master Developer · Libya',
   hero_title: 'Shaping Libya',
@@ -190,7 +190,7 @@ const ar = {
 
   footer_company: 'الشركة', footer_about: 'من نحن', footer_news: 'الأخبار', footer_contact: 'تواصل معنا',
   footer_explore: 'استكشف', footer_work: 'اعمل معنا', footer_vendor_reg: 'تسجيل الموردين',
-  privacy: 'الخصوصية', terms: 'الشروط', accessibility: 'إمكانية الوصول', rights: 'جميع الحقوق محفوظة.',
+  privacy: 'الخصوصية', terms: 'الشروط', accessibility: 'إمكانية الوصول', rights: 'جميع الحقوق محفوظة.', member_of: 'عضو في مجموعة IPH',
 
   hero_eyebrow: 'مطوّر رئيسي · ليبيا',
   hero_title: 'نصنع مستقبل ليبيا',

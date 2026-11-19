@@ -6,7 +6,7 @@ module.exports = {
 
   footer_company: 'Azienda', footer_about: 'Chi siamo', footer_news: 'Notizie', footer_contact: 'Contatti',
   footer_explore: 'Esplora', footer_work: 'Lavora con noi', footer_vendor_reg: 'Registrazione fornitori',
-  privacy: 'Privacy', terms: 'Termini', accessibility: 'Accessibilità', rights: 'Tutti i diritti riservati.',
+  privacy: 'Privacy', terms: 'Termini', accessibility: 'Accessibilità', rights: 'Tutti i diritti riservati.', member_of: 'Parte di IPH Group',
 
   hero_eyebrow: 'Un master developer · Libia',
   hero_title: 'Dare forma alla Libia',

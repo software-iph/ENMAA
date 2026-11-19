@@ -91,7 +91,7 @@ function footer(ctx) {
       ${LANGS.map((l) => `<li><a href="/${l}${ctx.path}" lang="${l}" hreflang="${l}">${LANG_FULL[l]}</a></li>`).join('')}</ul></div>
   </div>
   <div class="wrap footer-base">
-    <span>© ${year} ENMAA. ${esc(t('rights'))}</span>
+    <span>© ${year} ENMAA · ${esc(t('member_of'))}${lang === 'zh' ? '。' : '.'} ${esc(t('rights'))}</span>
     <span class="legal-links"><a href="/${lang}/privacy">${esc(t('privacy'))}</a><a href="/${lang}/terms">${esc(t('terms'))}</a><a href="/${lang}/accessibility">${esc(t('accessibility'))}</a></span>
   </div>
 </footer>`;

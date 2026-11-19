@@ -6,7 +6,7 @@ module.exports = {
 
   footer_company: '公司', footer_about: '关于我们', footer_news: '新闻', footer_contact: '联系我们',
   footer_explore: '探索', footer_work: '携手合作', footer_vendor_reg: '供应商注册',
-  privacy: '隐私', terms: '条款', accessibility: '无障碍', rights: '版权所有。',
+  privacy: '隐私', terms: '条款', accessibility: '无障碍', rights: '版权所有。', member_of: 'IPH 集团成员',
 
   hero_eyebrow: '总体开发商 · 利比亚',
   hero_title: '塑造利比亚',
