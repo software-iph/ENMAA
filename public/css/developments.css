@@ -61,7 +61,8 @@ html[lang="ar"] .kw-hint { letter-spacing: 0; font-size: 13px; }
 .kw-pin-dot { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; border-radius: 50%; background: var(--purple); box-shadow: 0 0 0 4px rgba(76, 34, 86, .25); animation: kw-pulse 2.2s ease-out infinite; }
 .kw-pin-label { position: absolute; left: 14px; top: -22px; display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; background: var(--white); border-inline-start: 2px solid var(--purple); box-shadow: 0 8px 22px rgba(42, 22, 44, .16); white-space: nowrap; animation: kw-pin-in .5s var(--ease-out, ease-out) both; animation-delay: calc(var(--i) * 90ms); transition: background .3s; }
 html[dir="rtl"] .kw-pin-label { left: auto; right: 14px; padding: 4px 4px 4px 12px; }
-.kw-pin-label img { width: 36px; height: 36px; object-fit: cover; }
+.kw-pin-label { width: max-content; }
+.kw-pin-label img { width: 36px; height: 36px; flex: none; object-fit: cover; } /* never squeezed, even when the pin is near the edge */
 .kw-pin-label b { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; color: var(--plum); transition: color .3s; }
 html[lang="ar"] .kw-pin-label b { letter-spacing: 0; font-size: 13px; }
 .kw-pin:hover .kw-pin-label, .kw-pin:focus-visible .kw-pin-label { background: var(--plum); }
@@ -151,7 +152,7 @@ html[lang="ar"] .kw-d-meta, html[lang="ar"] .kw-d-title { letter-spacing: 0; }
   .kw-stage { height: 96vw; min-height: 340px; max-height: 60svh; }
   .kw-matches { position: static; flex-direction: column; margin-top: 10px; }
   .kw-match { max-width: none; }
-  .kw-pin-label b { display: none; }
+  .kw-pins { display: none; } /* phones: no pins on the model; the developments are listed under it */
   .kw-list { margin-top: 64px; }
   .kw-drawer-panel { top: auto; height: 90svh; width: 100%; transform: translateY(100%); }
   html[dir="rtl"] .kw-drawer-panel { transform: translateY(100%); }

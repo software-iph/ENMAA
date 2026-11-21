@@ -115,7 +115,7 @@ function layout(ctx, body) {
   <meta property="og:description" content="${esc(description || t('meta_description'))}">
   <meta property="og:image" content="${baseUrl}${esc(ctx.ogImage || ctx.settings.img_share || '/img/hero.jpg')}">
   <meta name="theme-color" content="#2A162C">
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.svg?v=${V}" type="image/svg+xml">
   <link rel="preload" href="/fonts/Analogue.otf" as="font" type="font/otf" crossorigin>
   <link rel="stylesheet" href="/css/site.css?v=${V}">
   <link rel="stylesheet" href="/css/motion.css?v=${V}">
@@ -131,7 +131,9 @@ function layout(ctx, body) {
     d.classList.add(reduce?'reduce-motion':'full-motion');
     if(!reduce&&!sessionStorage.getItem('enmaa-intro')){d.classList.add('intro');sessionStorage.setItem('enmaa-intro','1')}
   }catch(e){}
-    setTimeout(function(){if(!d.classList.contains('motion-ready'))d.classList.remove('js')},4000);
+    // failsafe: if the site script breaks (older browsers), show everything instead of a blank page
+    addEventListener('error',function(e){if((e.filename||'').indexOf('/js/site.js')>-1&&!d.classList.contains('motion-ready'))d.classList.remove('js','intro')});
+    setTimeout(function(){if(!d.classList.contains('motion-ready'))d.classList.remove('js','intro')},4000);
   })(document.documentElement)</script>
 </head>
 <body class="page-${esc(ctx.active || 'other')}${ctx.solidNav ? ' has-solid-nav' : ''}">

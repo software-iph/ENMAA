@@ -562,7 +562,7 @@ router.use('/api', api);
 // The page links its script and styles with a version number, so a new version is never stuck in the browser cache.
 const ADMIN_V = Date.now().toString(36);
 const adminIndex = () => fs.readFileSync(path.join(__dirname, '..', 'admin', 'index.html'), 'utf8')
-  .replace(/(\/admin\/admin\.(?:css|js))(?=")/g, `$1?v=${ADMIN_V}`);
+  .replace(/(\/admin\/admin\.(?:css|js)|\/favicon\.svg)(?=")/g, `$1?v=${ADMIN_V}`);
 router.use(express.static(path.join(__dirname, '..', 'admin'), { index: false }));
 router.get(/.*/, (req, res) => res.set('Cache-Control', 'no-cache').type('html').send(adminIndex()));
 

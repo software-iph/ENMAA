@@ -1,11 +1,11 @@
 /* =====================================================================
    THEME — clean corporate look (sentence-case Montserrat headings,
-   champagne accent, outlined hero buttons, centred hero tagline).
+   purple accent, outlined hero buttons, centred hero tagline).
    Loaded last, so it refines the rules in the other style sheets.
    ===================================================================== */
 :root {
-  --accent: #C9AE8C;        /* champagne, for small labels and lines */
-  --accent-soft: #E8D9C4;   /* tagline on dark photos */
+  --accent: #4C2256;        /* ENMAA purple (as in the developer handoff), for small labels and markers */
+  --accent-soft: rgba(255, 255, 255, .85);   /* labels and tagline on dark photos */
   --cream: #F7F3EF;
 }
 
@@ -23,8 +23,11 @@ body { font-weight: 400; }
 
 .sec-label, .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .22em; color: var(--accent); }
 .sec-rule { color: var(--accent); }
-.rule { background: var(--accent); opacity: .6; }
+.rule { background: var(--grey3); opacity: 1; }
 .sec-head--light .sec-label, .sec-head--light .sec-rule { color: var(--accent-soft); }
+.sec-head--light .rule, .sec-rule--light .rule { background: rgba(255, 255, 255, .35); }
+/* on photos and dark bands the labels stay light so they can be read */
+.hero .eyebrow, .sec-rule--light, .sec-rule--light .sec-label { color: var(--accent-soft); }
 html[lang="ar"] .sec-label, html[lang="ar"] .eyebrow { font-size: 13px; letter-spacing: 0; }
 
 .statement, .story-statement { font-family: var(--sans); font-weight: 600; text-transform: none; letter-spacing: -.01em; }
@@ -186,7 +189,7 @@ html[lang="ar"] .band-title { letter-spacing: 0; line-height: 1.5; }
 .lang-menu { position: absolute; top: calc(100% + 8px); inset-inline-end: 0; min-width: 150px; background: var(--plum, #2a162c); color: #fff; padding: 6px; box-shadow: 0 18px 40px rgba(0, 0, 0, .25); display: grid; z-index: 60; }
 .lang-menu .lang-opt { display: block; font-size: 14px; letter-spacing: .02em; padding: 10px 14px; opacity: .8; border: 0; }
 .lang-menu .lang-opt:hover { opacity: 1; background: rgba(255, 255, 255, .08); }
-.lang-menu .lang-opt.is-current { opacity: 1; color: var(--accent, #C9AE8C); }
+.lang-menu .lang-opt.is-current { opacity: 1; color: var(--white); font-weight: 600; }
 .mobile-langs { flex-wrap: wrap; }
 
 /* Chinese: Montserrat has no Chinese letters, use the system's Chinese font */
@@ -227,3 +230,25 @@ html[lang="zh"] .nav-link, html[lang="zh"] .eyebrow { letter-spacing: .08em; }
 .steps--titled p { color: var(--silver); }
 .vendor-notice { margin: 0 0 32px; padding: 16px 20px; border-inline-start: 2px solid var(--silver); background: rgba(255, 255, 255, .06); color: var(--white); font-size: 15px; line-height: 1.6; }
 @media (min-width: 1101px) { #register .split-form > div:first-child { position: sticky; top: 120px; } }
+
+/* ---------- values on phones: one card per value, each with its own photo ---------- */
+.value-photo { display: none; }
+.values li { cursor: pointer; }
+@media (max-width: 767px) {
+  .values-media { display: none; }
+  .values-card { gap: 20px; }
+  .values { display: grid; gap: 28px; }
+  .values li, .values li.is-on { grid-template-columns: 34px 1fr; gap: 0 8px; padding: 0 0 26px; border-top: 0; border-bottom: 1px solid rgba(42, 22, 44, .12); }
+  .values li:last-child { border-bottom: 0; padding-bottom: 0; }
+  .values li::before { display: none; }
+  .values li.is-on:not(.is-open) h3 { color: inherit; }
+  .values li { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  /* the photo opens when the value is tapped (the first one starts open) */
+  .value-photo { display: block; grid-column: 1 / -1; position: relative; aspect-ratio: 16 / 10; max-height: 0; overflow: hidden; margin-bottom: 0; background: var(--grey1); transition: max-height .5s var(--ease-out, ease), margin .5s var(--ease-out, ease); }
+  .values li.is-open .value-photo { max-height: 75vw; margin-bottom: 16px; }
+  .values li.is-open h3 { color: var(--purple); }
+  .values li h3::after { content: '+'; float: inline-end; margin-inline-start: 12px; color: var(--grey8); font-weight: 400; transition: transform .3s; }
+  .values li.is-open h3::after { content: '−'; }
+  .value-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .values .num { padding-top: 3px; }
+}

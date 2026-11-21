@@ -317,10 +317,17 @@
       if (title) title.textContent = vItems[i].querySelector('h3').textContent;
     };
     show(0);
+    // Phones show each value's own photo; a tap opens that value's photo (one open at a time).
+    const phone = window.matchMedia('(max-width: 767px)');
+    const open = (i) => vItems.forEach((x, k) => { x.classList.toggle('is-open', k === i); x.setAttribute('aria-expanded', String(k === i)); });
+    open(0);
     vItems.forEach((li, i) => {
-      li.addEventListener('mouseenter', () => { paused = true; show(i); });
-      li.addEventListener('mouseleave', () => { paused = false; });
+      li.addEventListener('mouseenter', () => { if (!phone.matches) { paused = true; show(i); } });
+      li.addEventListener('mouseleave', () => { if (!phone.matches) paused = false; });
       li.addEventListener('focus', () => show(i));
+      // click / tap: show this value's photo and stop the automatic change
+      li.addEventListener('click', () => { paused = true; show(i); open(i); });
+      li.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); li.click(); } });
     });
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(([en]) => { visible = en.isIntersecting; }, { threshold: 0.4 }).observe(vItems[0].closest('section') || vItems[0]);

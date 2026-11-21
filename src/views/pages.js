@@ -160,7 +160,7 @@ function about(ctx, { services, values }) {
         <div class="values-media">${values.map((v, i) => img(v.image, '', `values-img${i === 0 ? ' is-on' : ''}`, true, '(max-width: 767px) 100vw, 45vw')).join('')}
           <div class="values-badge" aria-hidden="true"><b data-value-num>01</b><span data-value-title>${esc(values[0] ? values[0].title : '')}</span></div></div>
       </div>
-      <ol class="values" data-stagger>${values.map((v, i) => `<li data-value="${i}" tabindex="0"><span class="num">${pad(i + 1)}</span><div><h3 class="h5">${esc(v.title)}</h3><p>${esc(v.text)}</p></div></li>`).join('')}</ol>
+      <ol class="values" data-stagger>${values.map((v, i) => `<li data-value="${i}" tabindex="0">${v.image ? `<div class="value-photo">${img(v.image, '', '', true, '(max-width: 767px) 100vw, 1px')}</div>` : ''}<span class="num">${pad(i + 1)}</span><div><h3 class="h5">${esc(v.title)}</h3><p>${esc(v.text)}</p></div></li>`).join('')}</ol>
     </div></div>
   </section>
 

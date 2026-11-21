@@ -12,11 +12,11 @@ html[lang="ar"] .news-pill { letter-spacing: 0; font-size: 13px; }
 .orbit-stage { position: relative; height: 590px; margin-top: 10px; perspective: 1400px; perspective-origin: 50% 45%; cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; outline: none; }
 .orbit-stage.is-dragging { cursor: grabbing; }
 .orbit-stage:focus-visible { outline: 2px solid var(--accent); outline-offset: -6px; }
-.orbit-floor { position: absolute; left: 50%; bottom: 26px; width: min(900px, 90%); height: 70px; transform: translateX(-50%); background: radial-gradient(ellipse at center, rgba(42, 22, 44, .16) 0%, rgba(42, 22, 44, 0) 70%); pointer-events: none; }
+.orbit-floor { display: none; } /* no shadow under the cards */
 .orbit-ring { position: absolute; top: 50%; left: 50%; width: var(--cw); height: var(--ch); transform-style: preserve-3d; will-change: transform; transform: translate(-50%, -50%); pointer-events: none; }
 .orbit-ring > .orbit-card { pointer-events: auto; }
 
-.orbit-card { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 16px 16px 18px; background: var(--white); border-radius: 18px; border: 1px solid rgba(42, 22, 44, .06); box-shadow: 0 14px 40px rgba(42, 22, 44, .08); text-decoration: none; color: var(--text); backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: box-shadow .5s, border-color .5s; }
+.orbit-card { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 16px 16px 18px; background: var(--white); border-radius: 18px; border: 1px solid rgba(42, 22, 44, .08); box-shadow: none; text-decoration: none; color: var(--text); backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: box-shadow .5s, border-color .5s; }
 .orbit-card img { -webkit-user-drag: none; }
 .orbit-img { display: block; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: var(--grey1); margin-bottom: 16px; }
 .orbit-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .9s var(--ease); }
@@ -29,7 +29,7 @@ html[lang="ar"] .orbit-meta { letter-spacing: 0; font-size: 13px; }
 html[lang="ar"] .orbit-more { font-size: 14px; }
 
 /* the story facing you */
-.orbit-card.is-front { border-color: rgba(76, 34, 86, .18); box-shadow: 0 26px 60px rgba(42, 22, 44, .18); }
+.orbit-card.is-front { border-color: rgba(76, 34, 86, .18); box-shadow: none; }
 .orbit-card.is-front .orbit-more { opacity: 1; transform: none; }
 .orbit-card.is-front:hover .orbit-img img { transform: scale(1.05); }
 .orbit-card::before { content: ''; position: absolute; top: 0; inset-inline: 28px; height: 3px; border-radius: 0 0 3px 3px; background: var(--purple); transform: scaleX(0); transition: transform .6s var(--ease); }
